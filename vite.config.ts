@@ -25,11 +25,11 @@ export default defineConfig({
         name: 'copy-python-script',
         writeBundle() {
           // Ensure the directory exists
-          mkdirSync('.vite/src/fontjson', { recursive: true });
+          mkdirSync('/dist/mainPython', { recursive: true });
           
           // Copy the font file to maintain the same path structure
-          const fontContent = readFileSync('src/fontjson/font_default.json');
-          writeFileSync('.vite/src/fontjson/font_default.json', fontContent);
+          const fontContent = readFileSync('/src/mainPython/main.py');
+          writeFileSync('/dist/mainPython/main.py', fontContent);
         }
       }]
     },

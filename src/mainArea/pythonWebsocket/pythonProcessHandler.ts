@@ -1,4 +1,5 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
+import path from 'path';
 
 export class PythonProcessHandler {
     private pyProcess: ChildProcessWithoutNullStreams | null = null;
@@ -13,21 +14,33 @@ export class PythonProcessHandler {
             console.warn('Python process is already running.');
             return;
         }
+        
+        // Python 실행 파일 경로
+        const pythonExecutable = path.resolve(__dirname, '../../anaconda_env/python.exe');
+        console.log('Python Executable Path:', pythonExecutable);
+        console.log('Python Script Path:', this.scriptPath);
 
-        this.pyProcess = spawn('python', [this.scriptPath]);
+        // Python 프로세스 실행
+        try {
+            this.pyProcess = spawn(pythonExecutable, [this.scriptPath], {
+                stdio: 'pipe', // 출력과 에러를 가져오기 위해 pipe 설정
+            });
 
-        this.pyProcess.stdout.on('data', (data) => {
-            console.log(`Python stdout: ${data}`);
-        });
-
-        this.pyProcess.stderr.on('data', (data) => {
-            console.error(`Python stderr: ${data}`);
-        });
-
-        this.pyProcess.on('close', (code) => {
-            console.log(`Python process exited with code ${code}`);
-            this.pyProcess = null;
-        });
+            this.pyProcess.stdout.on('data', (data) => {
+                console.log(`Python stdout: ${data}`);
+            });
+    
+            this.pyProcess.stderr.on('data', (data) => {
+                console.error(`Python stderr: ${data}`);
+            });
+    
+            this.pyProcess.on('close', (code) => {
+                console.log(`Python process exited with code ${code}`);
+                this.pyProcess = null;
+            });
+        } catch(error) {
+            console.error(error);
+        }
     }
 
     public stop(): void {

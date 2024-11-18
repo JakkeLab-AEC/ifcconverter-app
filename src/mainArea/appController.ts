@@ -6,14 +6,14 @@ export class AppController {
     private static Instance: AppController;
     
     private pythonProcessHandler: PythonProcessHandler;
-    private pythonWebsocket: PythonWebsocket;
+    // private pythonWebsocket: PythonWebsocket;
 
     getPythonProcessHandler() {
         return this.pythonProcessHandler;
     }
 
     getPythonWebSocket() {
-        return this.pythonWebsocket;
+        // return this.pythonWebsocket;
     }
 
     private constructor() {
@@ -21,7 +21,7 @@ export class AppController {
         this.pythonProcessHandler = new PythonProcessHandler(pythonScriptPath);
         this.pythonProcessHandler.start();
 
-        this.pythonWebsocket = new PythonWebsocket('ws://localhost:5666');
+        // this.pythonWebsocket = new PythonWebsocket('ws://localhost:5666');
     }
 
     public static InitiateAppController(){
