@@ -23,9 +23,22 @@ export function setIPCElectronTestHandler(ipcMain: IpcMain) {
 
     ipcMain.handle('electron-python-test', async (_, message: string) => {
         const handler = AppController.getInstance().getPythonProcessHandler();
-        if(handler.isRunning()) {
-            console.log("Send message to Python");
-            // AppController.getInstance().getPythonWebSocket().sendMessage("Test");
-        }
+        handler.start();
+
+        (async () => {
+            try {
+                const response = await handler.sendMessage({
+                    action: 'greet',
+                    name: 'John Doe',
+                });
+                console.log(`------Python Response------`);
+                console.log(response);
+                console.log(`---------------------------`);
+            } catch(error) {
+                console.log(error);
+            } finally {
+                handler.stop();
+            }
+        })();
     });
 }

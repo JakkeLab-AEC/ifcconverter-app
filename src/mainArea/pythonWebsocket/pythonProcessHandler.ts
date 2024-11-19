@@ -9,7 +9,7 @@ export class PythonProcessHandler {
         this.scriptPath = scriptPath;
     }
 
-    public start(): void {
+    start(): void {
         if (this.pyProcess) {
             console.warn('Python process is already running.');
             return;
@@ -23,7 +23,7 @@ export class PythonProcessHandler {
         // Python 프로세스 실행
         try {
             this.pyProcess = spawn(pythonExecutable, [this.scriptPath], {
-                stdio: 'pipe', // 출력과 에러를 가져오기 위해 pipe 설정
+                stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
             });
 
             this.pyProcess.stdout.on('data', (data) => {
@@ -43,7 +43,7 @@ export class PythonProcessHandler {
         }
     }
 
-    public stop(): void {
+    stop(): void {
         if (this.pyProcess) {
             this.pyProcess.kill();
             console.log('Python process terminated.');
@@ -53,7 +53,51 @@ export class PythonProcessHandler {
         }
     }
 
-    public isRunning(): boolean {
+    async sendMessage(data: object): Promise<any> {
+        if(!this.pyProcess) {
+            throw new Error('Python process is not running.');
+        }
+
+        return new Promise((resolve, reject) => {
+            const message = JSON.stringify(data) + '\n';
+            const [stdin, stdout] = [this.pyProcess?.stdin, this.pyProcess?.stdout];
+
+            if(!stdin || !stdout) {
+                return reject('Python process stdin or stdout is not available.');
+            }
+
+            let buffer = '';
+
+            const onData = (chunk: Buffer) => {
+                console.log(`------Chunk Received------`);
+                console.log(chunk.toString());
+                console.log(`--------------------------`);
+    
+                buffer += chunk.toString(); // 버퍼를 문자열로 추가
+                if (buffer.trim().endsWith('}')) { // JSON 끝 확인
+                    try {
+                        const parsed = JSON.parse(buffer.trim()); // JSON 파싱
+                        stdout.removeListener('data', onData); // 리스너 해제
+                        resolve(parsed);
+                    } catch (error) {
+                        reject(`Failed to parse Python response: ${error}`);
+                    }
+                }
+            };
+
+            stdout.on('data', onData);
+            
+            stdin.write(message); // Python으로 요청 전송
+
+             // 타임아웃 설정
+            setTimeout(() => {
+                stdout.removeListener('data', onData);
+                reject('Python process did not respond in time.');
+            }, 5000); // 5초 제한
+        });
+    }
+
+    isRunning(): boolean {
         return this.pyProcess !== null;
     }
 }

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import { resolve, dirname } from 'path';
 import { builtinModules } from 'module';
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import copyFilesPlugin from "./viteplugin";
 
 export default defineConfig({
   base: './',
@@ -21,17 +22,11 @@ export default defineConfig({
         entryFileNames: '[name].js',
         format: 'cjs',
       },
-      plugins: [{
-        name: 'copy-python-script',
-        writeBundle() {
-          // Ensure the directory exists
-          mkdirSync('/dist/mainPython', { recursive: true });
-          
-          // Copy the font file to maintain the same path structure
-          const fontContent = readFileSync('/src/mainPython/main.py');
-          writeFileSync('/dist/mainPython/main.py', fontContent);
-        }
-      }]
+      plugins: [copyFilesPlugin({
+        src: '/src/anaconda_env',
+        dest: '/dist/mainArea',
+        watch: true
+      })]
     },
   },
   server: {
