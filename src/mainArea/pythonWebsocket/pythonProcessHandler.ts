@@ -89,11 +89,11 @@ export class PythonProcessHandler {
             
             stdin.write(message); // Python으로 요청 전송
 
-             // 타임아웃 설정
-            setTimeout(() => {
-                stdout.removeListener('data', onData);
-                reject('Python process did not respond in time.');
-            }, 5000); // 5초 제한
+            //  // 타임아웃 설정
+            // setTimeout(() => {
+            //     stdout.removeListener('data', onData);
+            //     reject('Python process did not respond in time.');
+            // }, 5000); // 5초 제한
         });
     }
 
