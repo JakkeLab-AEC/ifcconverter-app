@@ -16,7 +16,7 @@ export class PythonProcessHandler {
         }
         
         // Python 실행 파일 경로
-        const pythonExecutable = path.resolve(__dirname, '../../anaconda_env/python.exe');
+        const pythonExecutable = path.resolve(__dirname, '../../anaconda_env/bin/python');
         console.log('Python Executable Path:', pythonExecutable);
         console.log('Python Script Path:', this.scriptPath);
 
