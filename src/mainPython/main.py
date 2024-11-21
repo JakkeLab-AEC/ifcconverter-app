@@ -36,14 +36,7 @@ def create_ifc_from_json(json_data, output_file):
    """
     writer = IfcWriter()
     writer.set_project_info(json_data.get("project_name", "Default Project"))
-
-    # for element in json_data.get("elements", []):
-    #     writer.add_entity(
-    #         entity_type=element.get("type", "IfcBuilding"),
-    #         name=element.get("name", "Unnamed Element")
-    #     )
-
-    # writer.add_entity_wall()
+    writer.set_unit()
 
     writer.save(output_file)
     return output_file

@@ -16,23 +16,6 @@ class IfcWriter:
         """
         model = ifcopenshell.api.project.create_file(version="IFC4")
         ifcopenshell.api.unit.assign_unit(model)
-        context = ifcopenshell.api.context.add_context(model, context_type="Model")
-        body = ifcopenshell.api.context.add_context(
-            model,
-            context_type="Model",
-            context_identifier="Body",
-            target_view="MODEL_VIEW",
-            parent=context
-        )
-
-        site = ifcopenshell.api.root.create_entity(model, ifc_class="IfcSite", name="My Site")
-        building = ifcopenshell.api.root.create_entity(model, ifc_class="IfcBuilding", name="Building A")
-        storey = ifcopenshell.api.root.create_entity(model, ifc_class="IfcBuildingStorey", name="Ground Floor")
-
-        self.context = context
-        self.body = body
-        self.model = model
-        self.storey = storey
 
     """
     Set project name
@@ -64,6 +47,7 @@ class IfcWriter:
             self.model,
             product=wall
         )
+
         representation = ifcopenshell.api.geometry.add_wall_representation(
             self.model,
             context=self.body,
