@@ -3,7 +3,6 @@ import json
 
 from ifcWriter import IfcWriter
 
-
 def handle_message(message) -> dict:
     """
     Processes incoming messages and performs actions based on the request.
@@ -78,6 +77,23 @@ def create_ifc_from_json(json_data, output_file):
     writer.save(output_file)
     return output_file
 
+# Message handling loop for continuous processing
+def message_loop():
+    """
+    Continuously processes incoming messages from stdin.
+    """
+    while True:
+        line = sys.stdin.readline()
+        if not line:
+            break
+
+        # Process the incoming message
+        response = handle_message(line.strip())
+
+        # Output the response as JSON
+        print(json.dumps(response))
+        sys.stdout.flush()
+
 def create_ifc_test(output_file):
     """
     Test function to generate an IFC file with predefined data.
@@ -102,18 +118,25 @@ def create_ifc_test(output_file):
     # Fixed set of storeys for testing
     writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
 
+    writer.define_material(material_name="MAT_WAL_CONC", material_category="concrete")
+    writer.define_wall_type(wall_type_name="WAL_CONC_01", material_name="MAT_WAL_CONC", thickness=0.3)
+
+    writer.create_wall(target_storey='1F', length=5, height=4, wall_type_name="WAL_CONC_01")
+
     writer.save(output_file)
     return output_file
 
-# Message handling loop for continuous processing
-while True:
-    line = sys.stdin.readline()
-    if not line:
-        break
-
-    # Process the incoming message
-    response = handle_message(line.strip())
-
-    # Output the response as JSON
-    print(json.dumps(response))
-    sys.stdout.flush()
+# Test mode or default behavior
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        # Test mode: Run the script with a predefined JSON input
+        print("Running in test mode...")
+        test_input = {
+            "action": "create_ifc_test",
+            "output_file": "test_output.ifc"
+        }
+        response = handle_message(json.dumps(test_input))
+        print(json.dumps(response, indent=4))  # Pretty-print the response
+    else:
+        # Default behavior: Continuous message loop
+        message_loop()
