@@ -41,8 +41,9 @@ export function setIPCElectronTestHandler(ipcMain: IpcMain) {
         
                 // JSON 데이터를 기반으로 IFC 파일 생성 요청
                 const jsonData = {
-                    action: "create_ifc",
+                    action: "create_ifc_test",
                     project_name: "My Building Project",
+                    site_name: "my_site",
                     elements: [
                         { type: "IfcWall", name: "Main Wall" },
                         { type: "IfcDoor", name: "Entrance Door" },

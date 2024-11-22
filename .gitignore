@@ -232,3 +232,6 @@ $RECYCLE.BIN/
 
 # Anaconda env
 ./src/anacondad_env
+
+# Pycharm
+.idea/
