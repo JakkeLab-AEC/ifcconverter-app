@@ -133,9 +133,10 @@ if __name__ == "__main__":
         print("Running in test mode...")
         test_input = {
             "action": "create_ifc_test",
-            "output_file": "test_output.ifc"
+            "output_file": f"{sys.argv[2]}/test_output.ifc"
         }
         response = handle_message(json.dumps(test_input))
+        create_ifc_test(test_input['output_file'])
         print(json.dumps(response, indent=4))  # Pretty-print the response
     else:
         # Default behavior: Continuous message loop
