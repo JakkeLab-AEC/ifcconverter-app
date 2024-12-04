@@ -1,4 +1,5 @@
 from typing import Literal
+import math
 
 import ifcopenshell
 import ifcopenshell.api
@@ -13,6 +14,7 @@ import ifcopenshell.api.material
 import ifcopenshell.api.style
 import ifcopenshell.api.type
 import ifcopenshell.api.owner
+from bpy import context
 from ifcopenshell import entity_instance
 
 default_units = {
@@ -123,10 +125,38 @@ defaultOrganizationInfo = {
     "name": "DefaultOrganizationName"
 }
 
+def vector_rotate(vector: tuple[float, float], degree: float) -> tuple[float, float]:
+    radian = degree * (math.pi/180)
+    x = vector[0] * math.cos(radian) - vector[1] * math.sin(radian)
+    y = vector[0] * math.sin(radian) + vector[1] * math.cos(radian)
+    return x, y
 
+def vector_normalize(vector: tuple[float, float]) -> tuple[float, float]:
+    size = math.sqrt(vector[0]**2 + vector[1]**2)
+    return vector[0]/size, vector[1]/size
+
+def vector_add(v1: tuple[float, float], v2: tuple[float, float]):
+    return v1[0] + v2[0], v1[1] + v2[1]
+
+def vector_subtract(v1: tuple[float, float], v2: tuple[float, float]):
+    return v1[0] - v2[0], v1[1] - v2[1]
+
+def vector_multiply_scalar(vector: tuple[float, float], scalar: float) -> tuple[float, float]:
+    return vector[0] * scalar, vector[1] * scalar
+
+class UserData:
+    def __init__(self, identification: str="DefaultUserId", family_name: str="DefaultFamilyName", given_name: str="DefaultGivenName"):
+        self.identification = identification
+        self.family_name = family_name
+        self.given_name = given_name
+
+class OrganizationData:
+    def __init__(self, identification: str="DefaultOrganzationId", name: str="DefaultOrganizationName"):
+        self.identification = identification
+        self.name = name
 
 class IfcWriter:
-    def __init__(self, userinfo: dict[str, str]=defaultUserInfo, orginaizationInfo: dict[str, str]=defaultOrganizationInfo, project_name: str="Default Project", site_name: str="Default Site", building_name: str="Default Building"):
+    def __init__(self, schema: Literal["IFC4","IFC2x3"]="IFC2x3", userinfo: dict[str, str]=defaultUserInfo, orginaizationInfo: dict[str, str]=defaultOrganizationInfo, project_name: str="Default Project", site_name: str="Default Site", building_name: str="Default Building"):
         """
         Initialize an IFC file with a project, site, and building.
 
@@ -138,7 +168,9 @@ class IfcWriter:
         - Defines project units (length, area, volume).
         - Sets up the basic hierarchy: Project -> Site -> Building.
         """
-        model = ifcopenshell.api.project.create_file(version="IFC2x3")
+        model = ifcopenshell.api.project.create_file(version=schema)
+        self.schema = schema
+
         application = ifcopenshell.api.owner.add_application(model)
 
         #Owner setting
@@ -149,6 +181,7 @@ class IfcWriter:
             raise ValueError(f"Organization info should contain 'identification', 'name', values")
 
         person = ifcopenshell.api.owner.add_person(model, identification=userinfo['identification'], family_name=userinfo['family_name'], given_name=userinfo['given_name'])
+        registered_person = UserData(userinfo['identification'], userinfo['family_name'], userinfo['given_name'])
         organization = ifcopenshell.api.owner.add_organisation(model, identification=orginaizationInfo['identification'], name=orginaizationInfo['name'])
         user = ifcopenshell.api.owner.add_person_and_organisation(model, person=person, organisation=organization)
         project = ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name=project_name)
@@ -185,22 +218,6 @@ class IfcWriter:
         context = ifcopenshell.api.context.add_context(model, context_type="Model")
         body = ifcopenshell.api.context.add_context(model, context_type="Model", context_identifier="Body", target_view="MODEL_VIEW", parent=context)
 
-        # Define material set
-        material_sets: dict[str, entity_instance] = {}
-        for name in predefined_material_sets.keys():
-            material_set = ifcopenshell.api.material.add_material_set(model, name=name, set_type="IfcMaterialLayerSet")
-            for material in predefined_material_sets[name]:
-                new_material = ifcopenshell.api.material.add_material(model, name=material['name'])
-                if material['layer_type'] == 'single':
-                    layer = ifcopenshell.api.material.add_layer(model, layer_set=material_set, material=new_material)
-                    ifcopenshell.api.material.edit_layer(model, layer=layer, attributes={"LayerThickness": material['thickness']})
-
-            material_sets[name] = material_set
-
-        # Default types
-        wall_type = ifcopenshell.api.root.create_entity(model, ifc_class="IfcWallType", name="WA01", predefined_type=".STANDARD.")
-        ifcopenshell.api.material.assign_material(model, products=[wall_type], material=material_sets['Wall'])
-
         # Save properties
         self.model = model
         self.project = project
@@ -209,15 +226,17 @@ class IfcWriter:
         self.building = building
         self.context = context
         self.body = body
+        self.users: dict[str, UserData] = {
+            registered_person.identification: registered_person
+        }
         self.storeys = {}
         self.elements = {}
-        self.material_sets: dict[str, entity_instance] = material_sets
+        self.material_sets: dict[str, entity_instance] = {}
         self.materials = {}
-        self.element_types: dict[str, dict[str, entity_instance]] = {
-            "wall_types" : {
-                "WA01":wall_type
-            },
+        self.element_types: dict[str, dict[str, dict[str, any]]] = {
+            "wall_types" : {},
         }
+        self.styles = {}
 
     @property
     def get_site(self) -> entity_instance:
@@ -302,160 +321,146 @@ class IfcWriter:
         return created_storeys
 
     # Material
-    def define_material(self, material_name: str, material_description: str = None, material_category: str = "concrete", rgba: dict[str, float] = None) -> entity_instance:
-        # Validation for preventing the duplication of material name and unsupported category name
+    def define_material(self, material_name: str, rgba: dict[str, float]=None,  material_description: str=None, material_category: str=None)->entity_instance:
         if material_name in self.materials.keys():
-            raise ValueError(f'Duplication Error: Material named "{material_name}" already exists on the project.')
+            raise ValueError(f"Material named {material_name} is already exist.")
 
-        if material_category not in supported_material_categories:
-            raise ValueError(f'Unsupported Material Category: "{material_category}" is not supported.')
+        material = ifcopenshell.api.material.add_material(
+            self.model,
+            name=material_name,
+            category=material_category,
+            description=material_description
+        ) if self.schema == "IFC4" else ifcopenshell.api.material.add_material(
+            self.model,
+            name=material_name
+        )
 
-        # Creation of material
-        material = ifcopenshell.api.material.add_material(self.model, name=material_name, category=material_category)
-        if material_description:
-            material.Description = material_description
+        style = ifcopenshell.api.style.add_style(self.model, name=material_name)
 
-        # Add style
-        style = ifcopenshell.api.style.add_style(self.model)
+        if rgba is None:
+            rgba = {'r': 128, 'g': 128, 'b': 128, 'a': 1}
+        elif 'r' not in rgba.keys() and 'g' not in rgba.keys() and 'b' not in rgba.keys():
+            ValueError("The parameter rgba should contain 'r', 'g', 'b' values as float type.")
 
-        if rgba:
-            # Validate RGBA dictionary if provided
-            required_keys = {"r", "g", "b", "a"}
-            if not all(key in rgba for key in required_keys):
-                raise ValueError(f'Invalid RGBA: Missing one or more keys from {required_keys}. Received: {rgba}')
+        style_attribute = {
+            "SurfaceColour": { "Name": f"SRF_{material_name}", "Red": rgba['r']/255, "Green": rgba['g']/255, "Blue": rgba['b']/255 },
+        }
 
-            # Add surface style with user-provided RGBA values
-            ifcopenshell.api.style.add_surface_style(
-                self.model,
-                style=style,
-                ifc_class="IfcSurfaceStyleShading",
-                attributes={
-                    "SurfaceColour": {
-                        "Name": None,
-                        "Red": rgba["r"] / 255.0,
-                        "Green": rgba["g"] / 255.0,
-                        "Blue": rgba["b"] / 255.0,
-                    },
-                    "Transparency": rgba['a'],  # Alpha is used directly for transparency
-                }
-            )
-        else:
-            # Use predefined color for the given category if RGBA is not provided
-            predefined_style = predefined_styles[material_category]
-            ifcopenshell.api.style.add_surface_style(
-                self.model,
-                style=style,
-                ifc_class="IfcSurfaceStyleShading",
-                attributes={
-                    "SurfaceColour": {
-                        "Name": None,
-                        "Red": predefined_style["r"] / 255.0,
-                        "Green": predefined_style["g"] / 255.0,
-                        "Blue": predefined_style["b"] / 255.0,
-                    },
-                    "Transparency": predefined_style['a'],  # Predefined transparency
-                }
-            )
+        if self.schema == 'IFC4' and 'a' in rgba.keys():
+            style_attribute["Transparency"] = rgba['a']
 
-        # Assign the style to the material in the context of the model
+        ifcopenshell.api.style.add_surface_style(
+            self.model,
+            style=style,
+            ifc_class="IfcSurfaceStyleShading",
+            attributes=style_attribute
+        )
+
         ifcopenshell.api.style.assign_material_style(self.model, material=material, style=style, context=self.body)
-
-        # Store the material in the internal dictionary for future reference
+        self.styles[material_name] = style
         self.materials[material_name] = material
 
-        # Return the created material instance
         return material
+
+    def define_material_set(self, name: str, layers: list[dict[str, str|float]]) -> dict[str, any]:
+        if name in self.material_sets.keys():
+            raise ValueError(f"Duplication Error : Material set named '{name}' is already exist.")
+
+        material_set = ifcopenshell.api.material.add_material_set(self.model, name=name, set_type="IfcMaterialLayerSet")
+
+        total_thickness = 0
+        for layer_prop in layers:
+            if layer_prop['MaterialName'] not in self.materials.keys():
+                raise ValueError(f"Invalid Value Error : Material named '{layer_prop['MaterialName']}' is not defined.")
+            if layer_prop['LayerThickness'] is None:
+                raise ValueError(f"Invalid Value Error : LayerThickness is not given.")
+
+            material = self.materials[layer_prop['MaterialName']]
+            thickness = layer_prop['LayerThickness']
+            layer = ifcopenshell.api.material.add_layer(self.model, layer_set=material_set, material=material)
+            ifcopenshell.api.material.edit_layer(self.model, layer=layer, attributes={"LayerThickness": thickness})
+            total_thickness += thickness
+
+        self.material_sets['name'] = material_set
+        return {"MaterialSet": material_set, "TotalThickness": total_thickness}
 
     def define_wall_type(
             self,
-            wall_type_name: str,
+            name: str,
+            material_layers: list[dict[str, str|float]],
+            material_set_name: str,
             wall_type_description: str = None,
-            material_name: str = None,
-            thickness: float = None
     ) -> entity_instance:
-        # Validate that the wall type name is unique
-        if wall_type_name in self.element_types['wall_types'].keys():
-            raise ValueError(f'Duplication Error: Wall type named "{wall_type_name}" already exists.')
+        # Validations
+        if name in self.element_types['wall_types'].keys():
+            raise ValueError(f'Duplication Error: Wall type named "{name}" already exists.')
 
-        # Validate that the material exists, if provided
-        if material_name and material_name not in self.materials:
-            raise ValueError(f'Material Error: Material named "{material_name}" does not exist.')
+        if material_set_name in self.material_sets:
+            raise ValueError(f"Duplication Error: Material named '{material_set_name}' already exists.")
 
-        # Validate that thickness is provided
-        if thickness is None or thickness <= 0:
-            raise ValueError(f'Invalid Thickness: Thickness must be greater than zero. Received: {thickness}')
+        if not all(
+                isinstance(layer, dict) and 'MaterialName' in layer and 'LayerThickness' in layer
+                for layer in material_layers
+        ):
+            raise ValueError("Each element in material_layers must contain 'MaterialName' and 'LayerThickness' keys.")
+
+        # Define layers
+        material_set_creation = self.define_material_set(material_set_name, material_layers)
+        material_set: entity_instance = material_set_creation['MaterialSet']
+        total_thickness: float = material_set_creation['TotalThickness']
 
         # Create the IfcWallType entity
-        wall_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcWallType", name=wall_type_name)
+        wall_type = {"entity" : ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcWallType", name=name), "thickness" : total_thickness}
         if wall_type_description:
-            wall_type.Description = wall_type_description
+            wall_type["entity"].Description = wall_type_description
 
         # Assign material to the wall type, if provided
-        if material_name:
-            ifcopenshell.api.material.assign_material(
-                self.model, products=[wall_type], material=self.materials[material_name]
-            )
-
-        # Add layer
-        target_material = self.materials[material_name]
-        material_set = ifcopenshell.api.material.add_material_set(self.model, name=f"MAT_LAYERSET_{wall_type_name}", set_type="IfcMaterialLayerSet")
-        layer = ifcopenshell.api.material.add_layer(self.model, layer_set=material_set, material=target_material)
-        ifcopenshell.api.material.edit_layer(self.model, layer=layer, attributes={"LayerThickness": thickness})
-
-        # Store the wall type in the internal dictionary for future reference
-        self.element_types['wall_types'][wall_type_name] = wall_type
+        ifcopenshell.api.material.assign_material(self.model, products=[wall_type["entity"]], material=material_set)
 
         # Return the created wall type entity
+        self.element_types['wall_types'][name] = wall_type
         return wall_type
 
-    def create_wall(self, target_storey: str, length: float, height: float, thickness: float=0.3,
-                    wall_type_name: str = None) -> entity_instance:
-        """
-        Create a wall and assign it to a specific storey in the IFC model.
-
-        :param target_storey: The name of the storey where the wall will be placed.
-                              This must correspond to an existing storey in `self.storeys`.
-        :param length: The length of the wall in model units.
-        :param height: The height of the wall in model units.
-        :param thickness: The thickness of the wall in model units. If a valid `wall_type_name` is provided,
-                          this value will be replaced with the sum of the wall type's material layers.
-        :param wall_type_name: The name of a wall type in the model. If None, no wall type is assigned.
-        :return: The created IfcWall entity instance.
-
-        This method performs the following steps:
-        1. Validates that the target storey exists in the model.
-        2. Creates a new IfcWall entity in the model.
-        3. Sets the placement of the wall using the default coordinates.
-        4. Assigns the wall type (if provided) and calculates the wall's thickness from the wall type.
-        5. Generates a geometric representation of the wall with the specified dimensions.
-        6. Links the wall to the specified storey in the model hierarchy.
-
-        Raises:
-            ValueError: If the specified storey does not exist in `self.storeys`.
-            ValueError: If the specified wall type is not defined.
-        """
+    def create_wall(
+        self,
+        target_storey: str,
+        p1: tuple[float, float],
+        p2: tuple[float, float],
+        elevation: float,
+        height: float,
+        wall_type_name: str
+    ) -> entity_instance:
         if self.storeys[target_storey] is None:
             raise ValueError(f'The storey {target_storey} does not exist.')
 
         storey = self.storeys[target_storey]
         wall = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcWall")
-        calculated_thickness = thickness
 
         # Assign wall type
-        if wall_type_name is not None:
-            if wall_type_name not in self.element_types['wall_types']:
-                raise ValueError(f'Wall type "{wall_type_name}" is not defined.')
-            target_wall_type: entity_instance = self.element_types['wall_types'][wall_type_name]
-            ifcopenshell.api.type.assign_type(self.model, related_objects=[wall], relating_type=target_wall_type)
+        if wall_type_name not in self.element_types['wall_types']:
+            raise ValueError(f'Wall type "{wall_type_name}" is not defined.')
+        print(self.element_types['wall_types'][wall_type_name])
+        target_wall_type: entity_instance = self.element_types['wall_types'][wall_type_name]
+        ifcopenshell.api.type.assign_type(self.model, related_objects=[wall], relating_type=target_wall_type['entity'])
+
+        # Convert vector
+        thickness = target_wall_type['thickness']
+        direction = vector_normalize((p2[0] - p1[0], p2[1] - p1[1]))
+        rotated_direction = vector_rotate(direction, degree=-90)
+        converted_p1 = vector_add(p1, vector_multiply_scalar(rotated_direction, 0.5 * thickness))
+        converted_p2 = vector_add(p2, vector_multiply_scalar(rotated_direction, 0.5 * thickness))
 
         # Create representation
         ifcopenshell.api.geometry.edit_object_placement(self.model, product=wall)
-        representation = ifcopenshell.api.geometry.add_wall_representation(
+        representation = ifcopenshell.api.geometry.create_2pt_wall(
             self.model,
-            context=self.body,
-            length=length,
+            element=wall,
+            context=self.context,
+            p1=converted_p1,
+            p2=converted_p2,
+            elevation=elevation,
             height=height,
-            thickness=calculated_thickness
+            thickness=thickness
         )
 
         # Validate geometry representation creation

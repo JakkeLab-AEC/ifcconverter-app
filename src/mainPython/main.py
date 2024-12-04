@@ -118,10 +118,24 @@ def create_ifc_test(output_file):
     # Fixed set of storeys for testing
     writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
 
-    # writer.define_material(material_name="MAT_WAL_CONC", material_category="concrete")
-    # writer.define_wall_type(wall_type_name="WAL_CONC_01", material_name="MAT_WAL_CONC", thickness=0.3)
+    writer.define_material(material_name="CONC1", rgba={'r': 120, 'g': 170, 'b': 170})
+    writer.define_material(material_name="CONC2", rgba={'r': 120, 'g': 170, 'b': 170})
 
-    writer.create_wall(target_storey='1F', length=5, height=4, wall_type_name="WA01")
+    layers = [
+        {"MaterialName": "CONC1", "LayerThickness": 0.2},
+        {"MaterialName": "CONC2", "LayerThickness": 0.3},
+    ]
+    writer.define_material_set(name="WAL_MAT_01", layers=layers)
+
+    writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
+    writer.create_wall(
+        target_storey='1F',
+        p2=(1., 1.),
+        p1=(4., 4.),
+        elevation=0.5,
+        height=3,
+        wall_type_name="WAL_01"
+   )
 
     writer.save(output_file)
     return output_file
