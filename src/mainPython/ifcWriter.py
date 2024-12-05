@@ -1,4 +1,5 @@
 from typing import Literal
+from typing import Optional
 import math
 
 import ifcopenshell
@@ -237,6 +238,7 @@ class IfcWriter:
             "wall_types" : {},
         }
         self.styles = {}
+        self.profiles: dict[str, entity_instance] = {}
 
     @property
     def get_site(self) -> entity_instance:
@@ -381,7 +383,7 @@ class IfcWriter:
             ifcopenshell.api.material.edit_layer(self.model, layer=layer, attributes={"LayerThickness": thickness})
             total_thickness += thickness
 
-        self.material_sets['name'] = material_set
+        self.material_sets[name] = material_set
         return {"MaterialSet": material_set, "TotalThickness": total_thickness}
 
     def define_wall_type(
@@ -471,6 +473,74 @@ class IfcWriter:
         ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[wall])
 
         return wall
+
+    def define_col_type(
+        self,
+        name: str,
+        profile_type: Literal["IShape", "UShape", "LShape", "TShape", "CShape"],
+        profile_args: dict[str, str|float],
+        material_set_name: str,
+        material_name: str
+    ) -> Optional[entity_instance]:
+        # Validation
+        if profile_type == "IShape":
+            required_keys = {'w', 'h', 'tw', 'tf', 'r'}
+            if not required_keys.issubset(profile_args.keys()):
+                missing_keys = required_keys - profile_args.keys()
+                raise ValueError(f'Missing key Error : Requied keys - {required_keys}. Missing keys - {missing_keys}')
+            profile = self.model.create_entity(
+                type="IfcIShapeProfileDef",
+                ProfileName=name,
+                ProfileType="AREA",
+                OverallWidth=profile_args['w'],
+                OverallDepth=profile_args['h'],
+                WebThickness=profile_args['tw'],
+                FlangeThickness=profile_args['tf'],
+                FilletRadius=profile_args['r']
+            )
+
+        else:
+            return None
+
+        self.profiles[name] = profile
+
+        if material_set_name not in self.material_sets.keys():
+            raise ValueError(f"Invalid Value Error : Material set '{material_set_name}' is not exist.")
+
+        if material_name not in self.materials.keys():
+            raise ValueError(f"Invalid Value Error : Material '{material_name}' is not exist.")
+
+        column_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumnType", name=name)
+
+        material_set = self.material_sets[material_set_name]
+        material = self.materials[material_name]
+
+        ifcopenshell.api.material.assign_material(self.model, products=[column_type], material=material_set)
+
+
+    def create_column(
+        self,
+        profile_name: str,
+        height: float,
+        target_storey: str
+    ) -> entity_instance:
+        if profile_name not in self.profiles.keys():
+            raise ValueError(f"Not Exist Error : Profile '{profile_name}' does not exist.")
+
+        if self.storeys[target_storey] is None:
+            raise ValueError(f'The storey {target_storey} does not exist.')
+
+        storey = self.storeys[target_storey]
+        column = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumn")
+
+        profile = self.profiles[profile_name]
+        column_representation = ifcopenshell.api.geometry.add_profile_representation(self.model, context=self.context, profile=profile, depth=height)
+
+        ifcopenshell.api.geometry.assign_representation(self.model, product=column, representation=column_representation)
+        ifcopenshell.api.geometry.edit_object_placement(self.model, product=column)
+        ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[column])
+
+        return column
 
     def save(self, output_file):
         """

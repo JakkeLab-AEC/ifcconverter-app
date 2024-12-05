@@ -125,18 +125,35 @@ def create_ifc_test(output_file):
         {"MaterialName": "CONC1", "LayerThickness": 0.2},
         {"MaterialName": "CONC2", "LayerThickness": 0.3},
     ]
-    writer.define_material_set(name="WAL_MAT_01", layers=layers)
 
     writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
-    writer.create_wall(
-        target_storey='1F',
-        p2=(1., 1.),
-        p1=(4., 4.),
-        elevation=0.5,
-        height=3,
-        wall_type_name="WAL_01"
-   )
+    walls = [
+        {"p1": (1., 1.), "p2": (1., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+        {"p1": (1., 4.), "p2": (8., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+        {"p1": (8., 4.), "p2": (8., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+        {"p1": (8., 1.), "p2": (1., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+    ]
 
+    for wall in walls:
+        writer.create_wall(
+            target_storey='1F',
+            p1=wall["p1"],
+            p2=wall["p2"],
+            elevation=wall["elevation"],
+            height=wall["height"],
+            wall_type_name=wall["wall_type_name"]
+        )
+
+    writer.define_material(material_name="ST_01", rgba={"r": 255, "g": 0, "b": 0, "a": 1})
+
+    col_mat_layers = [
+        {"MaterialName": "ST_01", "LayerThickness": 0.2},
+    ]
+    writer.define_material_set(name="ST_COL_MAT_01", layers=col_mat_layers)
+
+    writer.define_col_type(name='ITypeTest', profile_type="IShape", profile_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}, material_set_name="ST_COL_MAT_01", material_name="ST_01")
+
+    writer.create_column(profile_name="ITypeTest", height=2, target_storey="1F")
     writer.save(output_file)
     return output_file
 
