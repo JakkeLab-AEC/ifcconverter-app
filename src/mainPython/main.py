@@ -127,34 +127,30 @@ def create_ifc_test(output_file):
     ]
 
     writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
-    walls = [
-        {"p1": (1., 1.), "p2": (1., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-        {"p1": (1., 4.), "p2": (8., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-        {"p1": (8., 4.), "p2": (8., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-        {"p1": (8., 1.), "p2": (1., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-    ]
+    # walls = [
+    #     {"p1": (1., 1.), "p2": (1., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+    #     {"p1": (1., 4.), "p2": (8., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+    #     {"p1": (8., 4.), "p2": (8., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+    #     {"p1": (8., 1.), "p2": (1., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
+    # ]
 
-    for wall in walls:
-        writer.create_wall(
-            target_storey='1F',
-            p1=wall["p1"],
-            p2=wall["p2"],
-            elevation=wall["elevation"],
-            height=wall["height"],
-            wall_type_name=wall["wall_type_name"]
-        )
+    # for wall in walls:
+    #     writer.create_wall(
+    #         target_storey='1F',
+    #         p1=wall["p1"],
+    #         p2=wall["p2"],
+    #         elevation=wall["elevation"],
+    #         height=wall["height"],
+    #         wall_type_name=wall["wall_type_name"]
+    #     )
 
-    writer.define_material(material_name="ST_01", rgba={"r": 255, "g": 0, "b": 0, "a": 1})
+    writer.define_col_type(name='ITypeTest', dimension_arg={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01})
 
-    col_mat_layers = [
-        {"MaterialName": "ST_01", "LayerThickness": 0.2},
-    ]
-    writer.define_material_set(name="ST_COL_MAT_01", layers=col_mat_layers)
-
-    writer.define_col_type(name='ITypeTest', profile_type="IShape", profile_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}, material_set_name="ST_COL_MAT_01", material_name="ST_01")
-
-    writer.create_column(profile_name="ITypeTest", height=2, target_storey="1F")
+    target_storey = writer.storeys['1F']
+    writer.create_column(column_type_name="ITypeTest", placement_coordinates=(10.0, 20.0, 0.0), extrusion_depth=500.0, storey=target_storey)
     writer.save(output_file)
+    # writer.visualize_as_graph()
+
     return output_file
 
 # Test mode or default behavior
@@ -164,7 +160,8 @@ if __name__ == "__main__":
         print("Running in test mode...")
         test_input = {
             "action": "create_ifc_test",
-            "output_file": f"{sys.argv[2]}/test_output.ifc"
+            "output_file": f"{sys.argv[2]}/test_output.ifc",
+            "json_file": f"{sys.argv[2]}/test_output.json"
         }
         response = handle_message(json.dumps(test_input))
         create_ifc_test(test_input['output_file'])
