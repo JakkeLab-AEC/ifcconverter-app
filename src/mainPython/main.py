@@ -101,7 +101,7 @@ def create_ifc_test(output_file):
     :param json_data: A dictionary for test purposes, though it is not dynamically used in this function.
                       Example: {"storeys": {"1F": 0.0, "2F": 3.0, "3F": 6.0}}
     :param output_file: The file path where the test IFC file will be saved.
-                        Example: "test_output.ifc"
+                        Example: "test_1.ifc"
     :return: The path to the saved IFC file.
 
     This method serves as a test or example implementation. Instead of dynamically processing
@@ -118,22 +118,22 @@ def create_ifc_test(output_file):
     # Fixed set of storeys for testing
     writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
 
-    writer.define_material(material_name="CONC1", rgba={'r': 120, 'g': 170, 'b': 170})
-    writer.define_material(material_name="CONC2", rgba={'r': 120, 'g': 170, 'b': 170})
-
-    layers = [
-        {"MaterialName": "CONC1", "LayerThickness": 0.2},
-        {"MaterialName": "CONC2", "LayerThickness": 0.3},
-    ]
-
-    writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
+    # writer.define_material(material_name="CONC1", rgba={'r': 120, 'g': 170, 'b': 170})
+    # writer.define_material(material_name="CONC2", rgba={'r': 120, 'g': 170, 'b': 170})
+    #
+    # layers = [
+    #     {"MaterialName": "CONC1", "LayerThickness": 0.2},
+    #     {"MaterialName": "CONC2", "LayerThickness": 0.3},
+    # ]
+    #
+    # writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
     # walls = [
     #     {"p1": (1., 1.), "p2": (1., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
     #     {"p1": (1., 4.), "p2": (8., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
     #     {"p1": (8., 4.), "p2": (8., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
     #     {"p1": (8., 1.), "p2": (1., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
     # ]
-
+    #
     # for wall in walls:
     #     writer.create_wall(
     #         target_storey='1F',
@@ -144,14 +144,22 @@ def create_ifc_test(output_file):
     #         wall_type_name=wall["wall_type_name"]
     #     )
 
-    writer.define_col_type(name='ITypeTest', dimension_arg={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01})
+    # writer.define_col_type(name='ITypeTest', dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}, extrusion_depth=5.0)
 
-    target_storey = writer.storeys['1F']
-    writer.create_column(column_type_name="ITypeTest", placement_coordinates=(10.0, 20.0, 0.0), extrusion_depth=500.0, storey=target_storey)
+    writer.create_column(
+        col_type_name="Col_01",
+        extrusion_depth=3,
+        dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
+        target_storey='1F',
+        coordinate=(1.0, 2.0, 0.0)
+    )
+
+
     writer.save(output_file)
-    # writer.visualize_as_graph()
+
 
     return output_file
+
 
 # Test mode or default behavior
 if __name__ == "__main__":
@@ -160,7 +168,7 @@ if __name__ == "__main__":
         print("Running in test mode...")
         test_input = {
             "action": "create_ifc_test",
-            "output_file": f"{sys.argv[2]}/test_output.ifc",
+            "output_file": f"{sys.argv[2]}/test_type2.ifc",
             "json_file": f"{sys.argv[2]}/test_output.json"
         }
         response = handle_message(json.dumps(test_input))

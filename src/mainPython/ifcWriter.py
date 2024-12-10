@@ -1,12 +1,7 @@
 from typing import Literal
-from typing import Optional
 import math
-import networkx as nx
-import matplotlib.pyplot as plt
 
-import json
-
-
+import numpy
 import ifcopenshell
 import ifcopenshell.api
 import ifcopenshell.api.root
@@ -21,7 +16,8 @@ import ifcopenshell.api.style
 import ifcopenshell.api.type
 import ifcopenshell.api.owner
 import ifcopenshell.guid
-from bpy import context
+import ifcopenshell.util.selector
+import ifcopenshell.util.representation
 from ifcopenshell import entity_instance
 
 default_units = {
@@ -163,7 +159,7 @@ class OrganizationData:
         self.name = name
 
 class IfcWriter:
-    def __init__(self, schema: Literal["IFC4","IFC2x3"]="IFC2x3", userinfo: dict[str, str]=defaultUserInfo, orginaizationInfo: dict[str, str]=defaultOrganizationInfo, project_name: str="Default Project", site_name: str="Default Site", building_name: str="Default Building"):
+    def __init__(self, schema: Literal["IFC4","IFC2x3"]="IFC4", userinfo: dict[str, str]=defaultUserInfo, orginaizationInfo: dict[str, str]=defaultOrganizationInfo, project_name: str="Default Project", site_name: str="Default Site", building_name: str="Default Building"):
         """
         Initialize an IFC file with a project, site, and building.
 
@@ -177,6 +173,10 @@ class IfcWriter:
         """
         model = ifcopenshell.api.project.create_file(version=schema)
         self.schema = schema
+
+        # Import utils
+        from ifcUtils import IfcUtil
+        self.ifcUtil = IfcUtil(self)
 
         application = ifcopenshell.api.owner.add_application(model)
 
@@ -192,7 +192,6 @@ class IfcWriter:
         organization = ifcopenshell.api.owner.add_organisation(model, identification=orginaizationInfo['identification'], name=orginaizationInfo['name'])
         user = ifcopenshell.api.owner.add_person_and_organisation(model, person=person, organisation=organization)
         project = ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name=project_name)
-
 
         # Define Units
         units = default_units
@@ -246,6 +245,9 @@ class IfcWriter:
         }
         self.styles = {}
         self.profiles: dict[str, entity_instance] = {}
+        self.geometric_representation_subContext: dict[str, entity_instance] = {}
+        self.origin = self.ifcUtil.create_cartesian_point((0.0, 0.0, 0.0))
+
 
     @property
     def get_site(self) -> entity_instance:
@@ -290,6 +292,9 @@ class IfcWriter:
 
         storey = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcBuildingStorey", name=storey_name)
         storey.Elevation = elevation
+
+        storey_placement = self.ifcUtil.create_storey_location(elevation)
+        storey.ObjectPlacement = storey_placement
 
         existing_storeys = []
         for rel in self.model.by_type("IfcRelAggregates"):
@@ -480,244 +485,66 @@ class IfcWriter:
 
         return wall
 
-    def define_col_type(
-        self,
-        name: str,
-        dimension_arg: dict[str, float]
-        ) -> entity_instance:
-        """
-        Define an IfcColumnType with an IShape profile.
-        """
-        # Create IfcIShapeProfileDef
-        profile = self.model.create_entity(
-            type="IfcIShapeProfileDef",
-            ProfileName=name,
-            ProfileType="AREA",
-            OverallWidth=dimension_arg['w'],
-            OverallDepth=dimension_arg['h'],
-            WebThickness=dimension_arg['tw'],
-            FlangeThickness=dimension_arg['tf'],
-            FilletRadius=dimension_arg['r']
-        )
-
-        # Create axis placement
-        axis_placement = self.model.create_entity(
-            type="IfcAxis2Placement3D",
-            Location=self.model.create_entity(type="IfcCartesianPoint", Coordinates=(0.0, 0.0, 0.0)),
-            Axis=self.model.create_entity(type="IfcDirection", DirectionRatios=(0.0, 0.0, 1.0)),
-            RefDirection=self.model.create_entity(type="IfcDirection", DirectionRatios=(1.0, 0.0, 0.0))
-        )
-
-        # Create extruded solid
-        extruded_solid = self.model.create_entity(
-            type="IfcExtrudedAreaSolid",
-            SweptArea=profile,
-            Position=axis_placement,
-            ExtrudedDirection=self.model.create_entity(type="IfcDirection", DirectionRatios=(0.0, 0.0, 1.0)),
-            Depth=3.0
-        )
-
-        # Create shape representation
-        shape_representation = self.model.create_entity(
-            type="IfcShapeRepresentation",
-            ContextOfItems=self.model.by_type("IfcGeometricRepresentationContext")[0],
-            RepresentationIdentifier="Body",
-            RepresentationType="SweptSolid",
-            Items=[extruded_solid]
-        )
-
-        # Create representation map
-        representation_map = self.model.create_entity(
-            type="IfcRepresentationMap",
-            MappingOrigin=axis_placement,
-            MappedRepresentation=shape_representation
-        )
-
-        # Create IfcColumnType
-        column_type = self.model.create_entity(
-            type="IfcColumnType",
-            OwnerHistory=self.model.by_type("IFCOWNERHISTORY")[0],
-            GlobalId=ifcopenshell.guid.new(),
-            Name=name,
-            RepresentationMaps=[representation_map],
-            PredefinedType="COLUMN"
-        )
-
-        # Save in element_types for reuse
-        self.element_types['column_types'][name] = {"Entity": column_type, "Profile": profile}
-        return column_type
-
-    def create_object_placement(
-            self,
-            coordinates: tuple[float, float, float],
-            placement_rel_to: Optional[entity_instance] = None
-        ) -> entity_instance:
-        """
-        Create an IfcLocalPlacement.
-        """
-        cartesian_point = self.model.create_entity(
-            type="IfcCartesianPoint",
-            Coordinates=coordinates
-        )
-
-        axis_placement = self.model.create_entity(
-            type="IfcAxis2Placement3D",
-            Location=cartesian_point,
-            Axis=self.model.create_entity(type="IfcDirection", DirectionRatios=(0.0, 0.0, 1.0)),
-            RefDirection=self.model.create_entity(type="IfcDirection", DirectionRatios=(1.0, 0.0, 0.0))
-        )
-
-        local_placement = self.model.create_entity(
-            type="IfcLocalPlacement",
-            PlacementRelTo=placement_rel_to,  # Optionally relate to a parent placement
-            RelativePlacement=axis_placement
-        )
-
-        return local_placement
-
-    def create_representation(
-            self,
-            profile: entity_instance,
-            extrusion_depth: float
-        ) -> entity_instance:
-        """
-        Create an IfcProductDefinitionShape for a column.
-        """
-        axis_placement = self.model.create_entity(
-            type="IfcAxis2Placement3D",
-            Location=self.model.create_entity(type="IfcCartesianPoint", Coordinates=(0.0, 0.0, 0.0)),
-            Axis=self.model.create_entity(type="IfcDirection", DirectionRatios=(0.0, 0.0, 1.0)),
-            RefDirection=self.model.create_entity(type="IfcDirection", DirectionRatios=(1.0, 0.0, 0.0))
-        )
-
-        extruded_solid = self.model.create_entity(
-            type="IfcExtrudedAreaSolid",
-            SweptArea=profile,
-            Position=axis_placement,
-            ExtrudedDirection=self.model.create_entity(type="IfcDirection", DirectionRatios=(0.0, 0.0, 1.0)),
-            Depth=extrusion_depth
-        )
-
-        shape_representation = self.model.create_entity(
-            type="IfcShapeRepresentation",
-            ContextOfItems=self.model.by_type("IfcGeometricRepresentationContext")[0],
-            RepresentationIdentifier="Body",
-            RepresentationType="SweptSolid",
-            Items=[extruded_solid]
-        )
-
-        product_definition_shape = self.model.create_entity(
-            type="IfcProductDefinitionShape",
-            Representations=[shape_representation]
-        )
-
-        return product_definition_shape
-
-    def assign_to_spatial_structure(self, column: entity_instance, storey: entity_instance):
-        """
-        Assigns the column to a specific building storey.
-        """
-        self.model.create_entity(
-            type="IfcRelContainedInSpatialStructure",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=self.model.by_type("IfcOwnerHistory")[0],
-            RelatedElements=[column],
-            RelatingStructure=storey
-        )
-
-    def relate_to_column_type(self, column: entity_instance, column_type: entity_instance):
-        """
-        Relates the column to its type definition (IfcColumnType).
-        """
-        self.model.create_entity(
-            type="IfcRelDefinesByType",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=self.model.by_type("IfcOwnerHistory")[0],
-            RelatedObjects=[column],
-            RelatingType=column_type
-        )
-
-    def add_column_properties(self, column: entity_instance):
-        """
-        Adds common property sets to the column.
-        """
-        # is_external = self.model.create_entity(
-        #     type="IfcPropertySingleValue",
-        #     Name="IsExternal",
-        #     NominalValue=self.model.create_entity(type="IfcBoolean", value=False)
-        # )
-        #
-        # load_bearing = self.model.create_entity(
-        #     type="IfcPropertySingleValue",
-        #     Name="LoadBearing",
-        #     NominalValue=self.model.create_entity(type="IfcBoolean", value=True)
-        # )
-
-        property_set = self.model.create_entity(
-            type="IfcPropertySet",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=self.model.by_type("IfcOwnerHistory")[0],
-            Name="Pset_ColumnCommon",
-            # HasProperties=[is_external, load_bearing]
-        )
-
-        self.model.create_entity(
-            type="IfcRelDefinesByProperties",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=self.model.by_type("IfcOwnerHistory")[0],
-            RelatedObjects=[column],
-            RelatingPropertyDefinition=property_set
-        )
-
     def create_column(
         self,
-        column_type_name: str,
-        placement_coordinates: tuple[float, float, float],
+        col_type_name: str,
         extrusion_depth: float,
-        storey: entity_instance
-    ) -> entity_instance:
-        """
-        Create an IfcColumn and relate it to a specific IfcColumnType.
-        """
-        # Validate column type existence
-        if column_type_name not in self.element_types['column_types'].keys():
-            raise ValueError(f"Not Exist Error : Column type '{column_type_name}' does not exist.")
+        target_storey: str,
+        dimension_args: dict[str, float],
+        coordinate: tuple[float, float, float]
+    ):
+        if col_type_name in self.element_types['column_types'].keys():
+            col_type = self.element_types['column_types'][col_type_name]['Entity']
+        else:
+            col_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumnType", name=col_type_name)
+            self.element_types['column_types'][col_type_name] = {'Entity' : col_type}
 
-        column_type = self.element_types['column_types'][column_type_name]['Entity']
-        profile = self.element_types['column_types'][column_type_name]['Profile']
+        if self.storeys[target_storey] is None:
+            raise ValueError(f'The storey {target_storey} does not exist.')
 
-        # Create object placement
-        object_placement = self.create_object_placement(
-            coordinates=placement_coordinates,
-            placement_rel_to=storey.ObjectPlacement  # Relate to the storey's placement
+        storey = self.storeys[target_storey]
+
+        profile = self.model.create_entity(
+            type="IfcIShapeProfileDef",
+            ProfileName=f"PROF_{col_type_name}",
+            ProfileType="AREA",
+            OverallWidth=dimension_args['w'],
+            OverallDepth=dimension_args['h'],
+            WebThickness=dimension_args['tw'],
+            FlangeThickness=dimension_args['tf'],
+            FilletRadius=dimension_args['r']
         )
 
-        # Create representation
-        representation = self.create_representation(
+        steel = ifcopenshell.api.material.add_material(self.model, name="ST01", category="steel")
+
+        material_set = ifcopenshell.api.material.add_material_set(self.model, name="B1", set_type="IfcMaterialProfileSet")
+
+        ifcopenshell.api.material.add_profile(
+            file=self.model,
+            material=steel,
             profile=profile,
-            extrusion_depth=extrusion_depth
+            profile_set=material_set
         )
 
-        # Create IfcColumn
-        column = self.model.create_entity(
-            type="IfcColumn",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=self.model.by_type("IfcOwnerHistory")[0],
-            ObjectPlacement=object_placement,
-            Representation=representation,
-            ObjectType=column_type_name
-        )
+        ifcopenshell.api.material.assign_material(self.model, products=[col_type], material=material_set)
+        column = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumn")
 
-        # Assign column to spatial structure
-        self.assign_to_spatial_structure(column, storey)
+        ifcopenshell.api.type.assign_type(self.model, related_objects=[column], relating_type=col_type)
+        body = ifcopenshell.util.representation.get_context(self.model, context="Model", subcontext="Body", target_view="MODEL_VIEW")
+        representation = ifcopenshell.api.geometry.add_profile_representation(self.model, context=body, profile=profile, depth=extrusion_depth)
 
-        # Relate column to its type
-        self.relate_to_column_type(column, column_type)
+        ifcopenshell.api.geometry.assign_representation(self.model, product=column, representation=representation)
+        ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[column])
 
-        # Add common properties
-        # self.add_column_properties(column)
+        matrix = numpy.eye(4)
+        matrix[:, 3][0:3] = coordinate
 
-        return column
+        ifcopenshell.api.geometry.edit_object_placement(self.model, product=column, matrix=matrix, is_si=True)
+
+    def query_test(self):
+        query = "IfcBuildingStorey"
+        filtered_elements = list(ifcopenshell.util.selector.filter_elements(self.model, query=query))
+        result_dict = {item.Name: item for item in filtered_elements}
 
     def save(self, output_file):
         """
