@@ -5,6 +5,8 @@ import ifcopenshell.guid
 import ifcopenshell.util.selector
 import ifcopenshell.api
 import ifcopenshell.api.type
+import ifcopenshell.api.material
+import ifcopenshell.api.style
 
 from ifcopenshell import entity_instance
 
@@ -373,6 +375,26 @@ class IfcUtil:
             file=self.writer.model,
             related_objects=[column],
             relating_type=col_type_data["Entity"]
+        )
+
+        steel_mat = self.writer.define_material(
+            material_name="ST_COL_01",
+            rgba={"r": 227, "g": 104, "b": 104, "a": 1},
+            material_category="steel"
+        )
+
+        ifcopenshell.api.style.assign_representation_styles(
+            self.writer.model, shape_representation=shape_representation, styles=[steel_mat['Style']],
+            should_use_presentation_style_assignment=True
+        )
+
+        material_set = ifcopenshell.api.material.add_material_set(
+            self.writer.model, name="B1", set_type="IfcMaterialProfileSet"
+        )
+
+        col_type_entity = col_type_data['Entity']
+        ifcopenshell.api.material.assign_material(
+            self.writer.model, products=[col_type_entity, column], material=material_set
         )
 
         return column
