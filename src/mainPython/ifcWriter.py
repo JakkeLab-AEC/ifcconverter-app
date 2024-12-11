@@ -23,8 +23,7 @@ from ifcopenshell import entity_instance
 default_units = {
     "LENGTHUNIT": None,
     "AREAUNIT": None,
-    "VOLUMEUNIT": None,
-    "PLANEANGLEUNIT": None,
+    "VOLUMEUNIT" : None,
 }
 
 predefined_styles = {
@@ -176,8 +175,8 @@ class IfcWriter:
         self.schema = schema
 
         # Import utils
-        from ifcUtils import IfcUtil
-        self.ifcUtil = IfcUtil(self)
+        from utils.ifcColumnUtils import IfcColumnUtil
+        self.ifcColumnUtil = IfcColumnUtil(self)
 
         application = ifcopenshell.api.owner.add_application(model)
 
@@ -193,6 +192,9 @@ class IfcWriter:
         organization = ifcopenshell.api.owner.add_organisation(model, identification=orginaizationInfo['identification'], name=orginaizationInfo['name'])
         user = ifcopenshell.api.owner.add_person_and_organisation(model, person=person, organisation=organization)
         project = ifcopenshell.api.root.create_entity(model, ifc_class="IfcProject", name=project_name)
+
+        ownerhistory = ifcopenshell.util.selector.filter_elements(model, "IfcOwnerHistory")
+        self.owner_history = list(ownerhistory)[0]
 
         # Define Units
         units = default_units
@@ -247,7 +249,7 @@ class IfcWriter:
         self.styles = {}
         self.profiles: dict[str, entity_instance] = {}
         self.geometric_representation_subContext: dict[str, entity_instance] = {}
-        self.origin = self.ifcUtil.create_cartesian_point((0.0, 0.0, 0.0))
+        self.origin = self.ifcColumnUtil.create_cartesian_point((0.0, 0.0, 0.0))
 
 
     @property
@@ -294,7 +296,7 @@ class IfcWriter:
         storey = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcBuildingStorey", name=storey_name)
         storey.Elevation = elevation
 
-        storey_placement = self.ifcUtil.create_storey_location(elevation)
+        storey_placement = self.ifcColumnUtil.create_storey_location(elevation)
         storey.ObjectPlacement = storey_placement
 
         existing_storeys = []
@@ -336,7 +338,7 @@ class IfcWriter:
         return created_storeys
 
     # Material
-    def define_material(self, material_name: str, rgba: dict[str, float]=None,  material_description: str=None, material_category: str=None)->dict[str, any]:
+    def define_material(self, material_name: str, rgba: dict[str, float]=None,  material_description: str=None, material_category: str=None)->entity_instance:
         if material_name in self.materials.keys():
             raise ValueError(f"Material named {material_name} is already exist.")
 
@@ -375,7 +377,7 @@ class IfcWriter:
         self.styles[material_name] = style
         self.materials[material_name] = material
 
-        return {"Style": style, "Material": material}
+        return material
 
     def define_material_set(self, name: str, layers: list[dict[str, str|float]]) -> dict[str, any]:
         if name in self.material_sets.keys():
@@ -497,8 +499,8 @@ class IfcWriter:
         if col_type_name in self.element_types['column_types'].keys():
             col_type = self.element_types['column_types'][col_type_name]['Entity']
         else:
-            col_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumnType", name=col_type_name, predefined_type="COLUMN")
-            self.element_types['column_types'][col_type_name] = {'Entity': col_type}
+            col_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumnType", name=col_type_name)
+            self.element_types['column_types'][col_type_name] = {'Entity' : col_type}
 
         if self.storeys[target_storey] is None:
             raise ValueError(f'The storey {target_storey} does not exist.')
@@ -516,33 +518,23 @@ class IfcWriter:
             FilletRadius=dimension_args['r']
         )
 
-        steel_mat = self.define_material(
-            material_name="ST_COL_01",
-            rgba={"r": 227, "g": 104, "b": 104, "a": 1 },
-            material_category="steel"
-        )
+        steel = ifcopenshell.api.material.add_material(self.model, name="ST01", category="steel")
 
         material_set = ifcopenshell.api.material.add_material_set(self.model, name="B1", set_type="IfcMaterialProfileSet")
 
         ifcopenshell.api.material.add_profile(
             file=self.model,
-            material=steel_mat['Material'],
+            material=steel,
             profile=profile,
             profile_set=material_set
         )
 
+        ifcopenshell.api.material.assign_material(self.model, products=[col_type], material=material_set)
         column = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumn")
-        ifcopenshell.api.material.assign_material(self.model, products=[col_type, column], material=material_set)
-
-        mapped_item = self.model.create_entity(type="IfcMappedItem")
-        representation_map = self.model.create_entity(type="IfcRepresentationMap")
 
         ifcopenshell.api.type.assign_type(self.model, related_objects=[column], relating_type=col_type)
         body = ifcopenshell.util.representation.get_context(self.model, context="Model", subcontext="Body", target_view="MODEL_VIEW")
         representation = ifcopenshell.api.geometry.add_profile_representation(self.model, context=body, profile=profile, depth=extrusion_depth)
-        ifcopenshell.api.style.assign_representation_styles(
-            self.model, shape_representation=representation, styles=[steel_mat['Style']], should_use_presentation_style_assignment=True
-        )
 
         ifcopenshell.api.geometry.assign_representation(self.model, product=column, representation=representation)
         ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[column])

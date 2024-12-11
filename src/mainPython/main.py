@@ -113,7 +113,7 @@ def create_ifc_test(output_file):
     Use this function to verify that the `IfcWriter` class and `create_storeys` logic are functioning
     correctly before implementing the dynamic parsing in `create_ifc_from_json`.
     """
-    writer = IfcWriter(schema="IFC4")
+    writer = IfcWriter(schema="IFC2x3")
 
     # Fixed set of storeys for testing
     writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
@@ -145,14 +145,6 @@ def create_ifc_test(output_file):
     #     )
 
     # writer.define_col_type(name='ITypeTest', dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}, extrusion_depth=5.0)
-    writer.ifcUtil.create_column(
-        name="COL_01",
-        depth=3,
-        dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
-        scale=1,
-        coordinate=(1.0, 2.0, 0.0),
-        target_storey_name="1F"
-    )
 
     # writer.create_column(
     #     col_type_name="Col_01",
@@ -162,7 +154,18 @@ def create_ifc_test(output_file):
     #     coordinate=(1.0, 2.0, 0.0)
     # )
 
+    writer.ifcColumnUtil.create_column(
+        name="Col_01",
+        depth=3.,
+        dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
+        scale=1.,
+        coordinate=(1., 1., 0.),
+        target_storey_name="1F"
+    )
+
+
     writer.save(output_file)
+
 
     return output_file
 
