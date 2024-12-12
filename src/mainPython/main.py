@@ -2,6 +2,7 @@ import sys
 import json
 
 from ifcWriter import IfcWriter
+import ifcopenshell.util.selector
 
 def handle_message(message) -> dict:
     """
@@ -116,7 +117,7 @@ def create_ifc_test(output_file):
     writer = IfcWriter(schema="IFC2x3")
 
     # Fixed set of storeys for testing
-    writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
+    # writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
 
     # writer.define_material(material_name="CONC1", rgba={'r': 120, 'g': 170, 'b': 170})
     # writer.define_material(material_name="CONC2", rgba={'r': 120, 'g': 170, 'b': 170})
@@ -154,18 +155,42 @@ def create_ifc_test(output_file):
     #     coordinate=(1.0, 2.0, 0.0)
     # )
 
-    writer.ifcColumnUtil.create_column(
-        name="Col_01",
-        depth=3.,
-        dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
-        scale=1.,
-        coordinate=(1., 1., 0.),
-        target_storey_name="1F"
+    # writer.ifcColumnUtil.create_column(
+    #     name="Col_01",
+    #     depth=3.,
+    #     dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
+    #     scale=1.,
+    #     coordinate=(1., 1., 0.),
+    #     target_storey_name="1F"
+    # )
+
+    writer.ifcCoreDataUtil.create_storey(
+        name="1F",
+        elevation=3.
     )
 
+    writer.ifcCoreDataUtil.create_storey(
+        name="2F",
+        elevation=6.
+    )
+
+    writer.ifcCoreDataUtil.create_storey(
+        name="3F",
+        elevation=9.
+    )
+
+    writer.ifcSharedElementDataUtil.create_column(
+        profile_name="PROF_COL_I_300x300",
+        col_type_name="COL_I_300x300",
+        target_storey_name="1F",
+        coordinate=(1., 1.),
+        base_offset=0.0,
+        height=2.,
+        rotation_degree=30,
+        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
 
     writer.save(output_file)
-
 
     return output_file
 

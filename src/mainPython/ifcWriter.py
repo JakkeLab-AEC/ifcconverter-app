@@ -176,7 +176,13 @@ class IfcWriter:
 
         # Import utils
         from utils.ifcColumnUtils import IfcColumnUtil
+        from utils.ifcResourceEntityUtils import IfcResourceEntityUtil
+        from utils.ifcCoreDataUtils import IfcCoreDataUtil
+        from utils.ifcSharedElementDataUtil import IfcSharedElementDataUtil
         self.ifcColumnUtil = IfcColumnUtil(self)
+        self.ifcResourceEntityUtil = IfcResourceEntityUtil(self)
+        self.ifcCoreDataUtil = IfcCoreDataUtil(self)
+        self.ifcSharedElementDataUtil = IfcSharedElementDataUtil(self)
 
         application = ifcopenshell.api.owner.add_application(model)
 
@@ -238,7 +244,8 @@ class IfcWriter:
         self.users: dict[str, UserData] = {
             registered_person.identification: registered_person
         }
-        self.storeys = {}
+
+        self.storeys:dict[str, dict[str, any]] = {}
         self.elements = {}
         self.material_sets: dict[str, entity_instance] = {}
         self.materials = {}
@@ -249,34 +256,15 @@ class IfcWriter:
         self.styles = {}
         self.profiles: dict[str, entity_instance] = {}
         self.geometric_representation_subContext: dict[str, entity_instance] = {}
-        self.origin = self.ifcColumnUtil.create_cartesian_point((0.0, 0.0, 0.0))
 
+        self.origin2d = self.ifcResourceEntityUtil.create_cartesian_point_2d((0., 0.))
+        self.origin3d = self.ifcResourceEntityUtil.create_cartesian_point_3d((0.0, 0.0, 0.0))
+        self.axis_z = self.ifcResourceEntityUtil.create_direction_3d((0., 0., 1.))
+        self.axis_x_2d = self.ifcResourceEntityUtil.create_direction_2d((1., 0.))
+        self.axis_y_2d = self.ifcResourceEntityUtil.create_direction_2d((0., 1.))
+        self.axis_x_3d = self.ifcResourceEntityUtil.create_direction_3d((1., 0., 0.))
+        self.axis_y_3d = self.ifcResourceEntityUtil.create_direction_3d((0., 1., 0.))
 
-    @property
-    def get_site(self) -> entity_instance:
-        """
-        Access the IfcSite entity.
-
-        :return: The IfcSite entity instance.
-        """
-        return self.site
-
-    @property
-    def get_building(self) -> entity_instance:
-        """
-        Access the IfcBuilding entity.
-
-        :return: The IfcBuilding entity instance.
-        """
-        return self.building
-
-    @property
-    def get_context(self) -> entity_instance:
-        return self.context
-
-    @property
-    def get_body(self) -> entity_instance:
-        return self.body
 
     # Storey
     def create_storey(self, storey_name: str, elevation: float) -> entity_instance:

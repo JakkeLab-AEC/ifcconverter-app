@@ -1,6 +1,5 @@
-from typing import Literal
-
 from dist.mainPython.ifcWriter import IfcWriter
+from typing import Literal
 from ifcopenshell import entity_instance
 import ifcopenshell.guid
 
@@ -11,25 +10,25 @@ class IfcResourceEntityUtil:
     def create_cartesian_point_2d(self, coordinate:tuple[float, float]) -> entity_instance:
         return self.writer.model.create_entity(
             type="IfcCartesianPoint",
-            Coodinates=coordinate
+            Coordinates=coordinate
         )
 
     def create_cartesian_point_3d(self, coordinate:tuple[float, float, float]) -> entity_instance:
         return self.writer.model.create_entity(
             type="IfcCartesianPoint",
-            Coodinates=coordinate
+            Coordinates=coordinate
         )
 
     def create_direction_2d(self, coordinate: tuple[float, float]) -> entity_instance:
         return self.writer.model.create_entity(
             type="IfcDirection",
-            Coodinates=coordinate
+            DirectionRatios=coordinate
         )
 
     def create_direction_3d(self, coordinate: tuple[float, float, float]) -> entity_instance:
         return self.writer.model.create_entity(
             type="IfcDirection",
-            Coodinates=coordinate
+            DirectionRatios=coordinate
         )
 
     def create_axis2placement_2d(
@@ -65,6 +64,23 @@ class IfcResourceEntityUtil:
             Location=location,
             Axis=axis,
             RefDirection=ref_direction
+        )
+
+    def create_local_placement(
+        self,
+        relative_placement: entity_instance,
+        placement_rel_to: entity_instance|None = None
+    ) -> entity_instance:
+        """
+        The following conventions shall apply as default relative positions if the relative placement is used.
+        The conventions are given for all five direct subtypes of IfcProduct, the IfcSpatialStructureElement, IfcElement, IfcAnnotation, IfcGrid, IfcPort.
+        :param relative_placement: Entity of IfcObjectPlacement
+        :param placement_rel_to: Entity of IfcAxis2Placement
+        """
+        return self.writer.model.create_entity(
+            type="IfcLocalPlacement",
+            PlacementRelTo=placement_rel_to,
+            RelativePlacement=relative_placement
         )
 
     def create_profile_IShape(
@@ -143,9 +159,9 @@ class IfcResourceEntityUtil:
     def create_shape_representation(
         self,
         context_of_items: entity_instance,
-        representation_identifier: Literal["Boty", "Axis", "Box", "Footprint"],
+        representation_identifier: Literal["Body", "Axis", "Box", "Footprint"],
         representation_type: Literal["SweptSolid", "MappedRepresentation"],
-        items: set[entity_instance],
+        items: list[entity_instance],
     ) -> entity_instance:
         """
         Create IfcShapeRepresentation.
@@ -180,7 +196,7 @@ class IfcResourceEntityUtil:
         :return: A new IfcRepresentationMap instance linking the origin and representation.
         """
         if mapping_origin is None:
-            mapping_origin = self.create_axis2placement_3d(location=self.writer.origin)
+            mapping_origin = self.create_axis2placement_3d(location=self.writer.origin3d)
 
         return self.writer.model.create_entity(
             type="IfcRepresentationMap",
@@ -204,14 +220,15 @@ class IfcResourceEntityUtil:
         :param scale: Scale factor
         """
         if local_origin is None:
-            local_origin = self.writer.origin
+            local_origin = self.writer.origin3d
 
         return self.writer.model.create_entity(
             type="IfcCartesianTransformationOperator3D",
             Axis1=axis1,
             Axis2=axis2,
             Axis3=axis3,
-            Scale=scale
+            Scale=scale,
+            LocalOrigin=local_origin
         )
 
     def create_mapped_item(
@@ -230,7 +247,7 @@ class IfcResourceEntityUtil:
             MappingTarget=mapping_target,
         )
 
-    def geometric_representation_context(
+    def create_geometric_representation_context(
         self,
         coordinate_space_dimension: int,
         precision: float=0.01,
@@ -249,9 +266,9 @@ class IfcResourceEntityUtil:
         :param true_north: Entity of IfcDirection (2D). If the value is None, (0., 1.) will be set as the direction.
         """
         if true_north is None:
-            true_north = self.create_direction_2d((0., 1.))
+            true_north = self.writer.axis_y_2d
         if world_coordinate_system is None:
-            world_coordinate_system = self.writer.origin
+            world_coordinate_system = self.create_axis2placement_3d(location=self.writer.origin3d)
 
         return self.writer.model.create_entity(
             type="IfcGeometricRepresentationContext",
@@ -337,39 +354,4 @@ class IfcResourceEntityUtil:
             Description=description,
             RelatedObjects=related_objects,
             RelatingType=relating_type
-        )
-
-    def create_rel_contained_in_spatial_structure(
-        self,
-        related_elements: set[entity_instance],
-        relating_structure: entity_instance,
-        owner_history: entity_instance|None = None,
-        name: str|None = None,
-        description: str|None = None
-    ) -> entity_instance:
-        """
-        This entity is used to assign elements to a certain level of the spatial project structure.
-        Predefined spatial structure elements to which elements can be assigned are \n
-        - site as IfcSite
-        - building as IfcBuilding
-        - storey as IfcBuildingStorey
-        - space as IfcSpace
-        For example, IfcColumn can be related to IfcBuildingStorey.
-        :param related_elements: Set of IfcProduct
-        :param relating_structure: Entity of IfcSpatialStructureElement
-        :param owner_history: Entity of IfcOwnerHistory
-        :param name: Name of this entity
-        :param description: Description of this entity
-        """
-        if owner_history is None:
-            owner_history = self.writer.owner_history
-
-        return self.writer.model.create_entity(
-            type="IfcRelContainedInSpatialStructure",
-            GlobalId=ifcopenshell.guid.new(),
-            OwnerHistory=owner_history,
-            Name=name,
-            Description=description,
-            RelatedElements=related_elements,
-            RelatingStructure=relating_structure
         )
