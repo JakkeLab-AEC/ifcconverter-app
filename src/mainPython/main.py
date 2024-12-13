@@ -114,7 +114,7 @@ def create_ifc_test(output_file):
     Use this function to verify that the `IfcWriter` class and `create_storeys` logic are functioning
     correctly before implementing the dynamic parsing in `create_ifc_from_json`.
     """
-    writer = IfcWriter(schema="IFC2x3")
+    writer = IfcWriter(schema="IFC4")
 
     # Fixed set of storeys for testing
     # writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
@@ -190,10 +190,31 @@ def create_ifc_test(output_file):
         profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
     )
 
+    writer.ifcSharedElementDataUtil.create_column(
+        profile_name="PROF_COL_I_300x300",
+        col_type_name="COL_I_300x300",
+        target_storey_name="1F",
+        coordinate=(1., 6.),
+        base_offset=-1.0,
+        height=4.,
+        rotation_degree=30,
+        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
+
+    writer.ifcSharedElementDataUtil.create_column(
+        profile_name="PROF_COL_I_300x300",
+        col_type_name="COL_I_300x300",
+        target_storey_name="1F",
+        coordinate=(1., 11.),
+        base_offset=1.0,
+        height=3.,
+        rotation_degree=30,
+        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
+
     writer.save(output_file)
 
     return output_file
-
 
 # Test mode or default behavior
 if __name__ == "__main__":

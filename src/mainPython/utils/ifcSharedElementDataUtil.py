@@ -112,9 +112,10 @@ class IfcSharedElementDataUtil:
             type="IfcColumn",
             GlobalId=ifcopenshell.guid.new(),
             OwnerHistory=self.writer.owner_history,
+            Name=col_type_name,
             ObjectType=col_type_name,
             ObjectPlacement=column_placement,
-            Representation=product_definition_shape,
+            Representation=product_definition_shape
         )
 
         # Create RelContainedSpatialStructure

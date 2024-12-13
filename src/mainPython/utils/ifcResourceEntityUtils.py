@@ -355,3 +355,39 @@ class IfcResourceEntityUtil:
             RelatedObjects=related_objects,
             RelatingType=relating_type
         )
+
+    # Material and styles
+    def create_colour_rgb(
+        self,
+        red: float,
+        green: float,
+        blue: float
+    ) -> entity_instance:
+        return self.writer.model.create_entity(
+            type="IfcColourRgb",
+            Red=red,
+            Green=green,
+            Blue=blue
+        )
+
+    def create_surface_style_rendering(
+        self,
+        rgb: dict[str, float],
+        transparency: float = 1,
+    ) -> entity_instance:
+
+        color = self.create_colour_rgb(
+            red=max(rgb["r"]/255, 255),
+            green=max(rgb["g"]/255, 255),
+            blue=max(rgb["b"] / 255, 255),
+        )
+
+    def create_material(
+        self,
+        name: str
+    ) -> entity_instance:
+        self.writer.model.create_entity(
+            type="IfcMaterial",
+            Name=name
+        )
+
