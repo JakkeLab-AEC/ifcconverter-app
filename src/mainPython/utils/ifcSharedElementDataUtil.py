@@ -93,6 +93,9 @@ class IfcSharedElementDataUtil:
                 Name=col_type_name,
                 RepresentationMaps=[mapped_item]
             )
+            self.writer.element_types["column_types"][col_type_name] = {
+                "Entity": column_type
+            }
 
         # Create column's Placement
         radian = math.radians(rotation_degree)
@@ -124,3 +127,5 @@ class IfcSharedElementDataUtil:
             relating_structure=target_storey["Entity"],
             owner_history=self.writer.owner_history,
         )
+
+        return column

@@ -248,7 +248,7 @@ class IfcWriter:
         self.storeys:dict[str, dict[str, any]] = {}
         self.elements = {}
         self.material_sets: dict[str, entity_instance] = {}
-        self.materials = {}
+        self.materials: dict[str, dict[str: entity_instance]] = {}
         self.element_types: dict[str, dict[str, dict[str, any]]] = {
             "wall_types" : {},
             "column_types" : {},

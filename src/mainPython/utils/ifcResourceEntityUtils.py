@@ -372,22 +372,137 @@ class IfcResourceEntityUtil:
 
     def create_surface_style_rendering(
         self,
-        rgb: dict[str, float],
-        transparency: float = 1,
+        rgba: dict[str, float],
     ) -> entity_instance:
 
         color = self.create_colour_rgb(
-            red=max(rgb["r"]/255, 255),
-            green=max(rgb["g"]/255, 255),
-            blue=max(rgb["b"] / 255, 255),
+            red=min(rgba["r"]/255, 255),
+            green=min(rgba["g"]/255, 255),
+            blue=min(rgba["b"] / 255, 255),
+        )
+
+        return self.writer.model.create_entity(
+            type="IfcSurfaceStyleRendering",
+            Transparency=rgba['a'],
+            SurfaceColour=color,
+            ReflectanceMethod='NOTDEFINED'
+        )
+
+    def create_surface_style(
+        self,
+        name: str,
+        side: Literal["POSITIVE", "NEGATIVE", "BOTH"],
+        styles: list[entity_instance]
+    ) -> entity_instance:
+        return self.writer.model.create_entity(
+            type="IfcSurfaceStyle",
+            Name=name,
+            Side=side,
+            Styles=styles
+        )
+
+    def create_presentation_style_assignment(
+        self,
+        styles: list[entity_instance]
+    ) -> entity_instance:
+        return self.writer.model.create_entity(
+            type="IfcPresentationStyleAssignment",
+            Styles=styles
+        )
+
+    def create_styled_item(
+        self,
+        styles: list[entity_instance]
+    ) -> entity_instance:
+
+        return self.writer.model.create_entity(
+            type="IfcStyledItem",
+            Styles=styles
+        )
+
+    def create_styled_representation(
+        self,
+        representation_identifier: Literal["Style"],
+        representation_type: Literal["Material"],
+        items: list[entity_instance],
+        context_of_items: entity_instance
+    ) -> entity_instance:
+        return self.writer.model.create_entity(
+            type="IfcStyledRepresentation",
+            Items=items,
+            RepresentationIdentifier=representation_identifier,
+            RepresentationType=representation_type,
+            ContextOfItems=context_of_items
         )
 
     def create_material(
         self,
-        name: str
+        name: str,
+        rgba: dict[str, float]
     ) -> entity_instance:
-        self.writer.model.create_entity(
+
+        if name in self.writer.materials.keys():
+            raise ValueError(f"Duplication Error : Material {name} already exists.")
+
+        surface_style_rendering = self.create_surface_style_rendering(rgba)
+
+        surface_style = self.create_surface_style(
+            name=f"SRF_{name}",
+            side="BOTH",
+            styles=[surface_style_rendering]
+        )
+
+        presentation_style_assignment = self.create_presentation_style_assignment(
+            styles=[surface_style]
+        )
+
+        styled_item = self.create_styled_item(
+            styles=[presentation_style_assignment]
+        )
+
+        styled_representation = self.create_styled_representation(
+            representation_identifier="Style",
+            representation_type="Material",
+            items=[styled_item],
+            context_of_items=self.writer.context
+        )
+
+        material = self.writer.model.create_entity(
             type="IfcMaterial",
             Name=name
         )
+
+        material_definition_representation = self.writer.model.create_entity(
+            type="IfcMaterialDefinitionRepresentation",
+            RepresentedMaterial=material,
+            Representations = [styled_representation]
+        )
+
+        entity_set = {
+            "Definition": material_definition_representation,
+            "Material": material,
+        }
+
+        self.writer.materials[name] = entity_set
+        return entity_set
+
+    def assign_material(
+        self,
+        material_name: str,
+        target_objects: set[entity_instance]
+    ) -> entity_instance:
+        if material_name not in self.writer.materials.keys():
+            raise ValueError(f"Not Exist Error : Material ${material_name} does not exist")
+
+        material_entity = self.writer.materials[material_name]["Material"]
+        return self.writer.model.create_entity(
+            type="IfcRelAssociatesMaterial",
+            GlobalId=ifcopenshell.guid.new(),
+            OwnerHistory=self.writer.owner_history,
+            RelatedObjects=target_objects,
+            RelatingMaterial=material_entity
+        )
+
+
+
 

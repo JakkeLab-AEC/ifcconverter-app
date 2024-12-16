@@ -114,7 +114,7 @@ def create_ifc_test(output_file):
     Use this function to verify that the `IfcWriter` class and `create_storeys` logic are functioning
     correctly before implementing the dynamic parsing in `create_ifc_from_json`.
     """
-    writer = IfcWriter(schema="IFC4")
+    writer = IfcWriter(schema="IFC2x3")
 
     # Fixed set of storeys for testing
     # writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
@@ -179,7 +179,7 @@ def create_ifc_test(output_file):
         elevation=9.
     )
 
-    writer.ifcSharedElementDataUtil.create_column(
+    column1 = writer.ifcSharedElementDataUtil.create_column(
         profile_name="PROF_COL_I_300x300",
         col_type_name="COL_I_300x300",
         target_storey_name="1F",
@@ -190,7 +190,7 @@ def create_ifc_test(output_file):
         profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
     )
 
-    writer.ifcSharedElementDataUtil.create_column(
+    column2 = writer.ifcSharedElementDataUtil.create_column(
         profile_name="PROF_COL_I_300x300",
         col_type_name="COL_I_300x300",
         target_storey_name="1F",
@@ -201,7 +201,7 @@ def create_ifc_test(output_file):
         profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
     )
 
-    writer.ifcSharedElementDataUtil.create_column(
+    column3 = writer.ifcSharedElementDataUtil.create_column(
         profile_name="PROF_COL_I_300x300",
         col_type_name="COL_I_300x300",
         target_storey_name="1F",
@@ -210,6 +210,21 @@ def create_ifc_test(output_file):
         height=3.,
         rotation_degree=30,
         profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
+
+    writer.ifcResourceEntityUtil.create_material(
+        name="STEEL_RED",
+        rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
+    )
+
+    writer.ifcResourceEntityUtil.assign_material(
+        material_name="STEEL_RED",
+        target_objects=[column1, column2, column3]
+    )
+
+    writer.ifcResourceEntityUtil.assign_material(
+        material_name="STEEL_RED",
+        target_objects=[writer.element_types["column_types"]["COL_I_300x300"]["Entity"]]
     )
 
     writer.save(output_file)
