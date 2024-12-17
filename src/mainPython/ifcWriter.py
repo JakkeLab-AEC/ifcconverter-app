@@ -262,6 +262,8 @@ class IfcWriter:
         self.axis_z = self.ifcResourceEntityUtil.create_direction_3d((0., 0., 1.))
         self.axis_x_2d = self.ifcResourceEntityUtil.create_direction_2d((1., 0.))
         self.axis_y_2d = self.ifcResourceEntityUtil.create_direction_2d((0., 1.))
+        self.axis_x_2d_neg = self.ifcResourceEntityUtil.create_direction_2d((-1., 0.))
+        self.axis_y_2d_neg = self.ifcResourceEntityUtil.create_direction_2d((0., -1.))
         self.axis_x_3d = self.ifcResourceEntityUtil.create_direction_3d((1., 0., 0.))
         self.axis_y_3d = self.ifcResourceEntityUtil.create_direction_3d((0., 1., 0.))
 

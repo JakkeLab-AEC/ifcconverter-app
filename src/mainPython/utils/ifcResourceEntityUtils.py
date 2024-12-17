@@ -383,8 +383,10 @@ class IfcResourceEntityUtil:
 
         return self.writer.model.create_entity(
             type="IfcSurfaceStyleRendering",
-            Transparency=rgba['a'],
             SurfaceColour=color,
+            Transparency=rgba['a'],
+            ReflectionColour=self.writer.model.create_entity(type="IfcNormalisedRatioMeasure", wrappedValue=0.5),
+            SpecularColour=self.writer.model.create_entity(type="IfcSpecularExponent", wrappedValue=128.),
             ReflectanceMethod='NOTDEFINED'
         )
 
@@ -503,6 +505,159 @@ class IfcResourceEntityUtil:
             RelatingMaterial=material_entity
         )
 
+    #Arbitary Profile
+    def create_polyline(
+        self,
+        pts: list[tuple[float, float]],
+    ) -> entity_instance:
 
+        pt_entities: list[entity_instance] = []
+        for pt in pts:
+            pt_entity = self.create_cartesian_point_2d(pt)
+            pt_entities.append(pt_entity)
 
+        return self.writer.model.create_entity(
+            type="IfcPolyline",
+            Points=pt_entities,
+        )
 
+    def create_composite_curve_segment_linear(
+        self,
+        pts: list[tuple[float, float]]
+    ) -> entity_instance:
+        polyline = self.create_polyline(pts)
+        return self.writer.model.create_entity(
+            type="IfcCompositeCurveSegment",
+            Transition="CONTINUOUS",
+            SameSense=True,
+            ParentCurve=polyline
+        )
+
+    def create_circle(
+        self,
+        center: tuple[float, float],
+        radius: float,
+        degree: float,
+        direction: tuple[float, float] | None = None
+    ) -> entity_instance:
+
+        if direction is None:
+            axis_direction = self.create_direction_2d((1., 0.))
+        else:
+            axis_direction = self.create_direction_2d(coordinate=direction)
+
+        point = self.create_cartesian_point_2d(coordinate=center)
+        position = self.create_axis2placement_2d(
+            location=point,
+            ref_direction=axis_direction
+        )
+
+        circle = self.writer.model.create_entity(
+            type="IfcCircle",
+            Radius=radius,
+            Position=position
+        )
+
+        return self.writer.model.create_entity(
+            type="IfcTrimmedCurve",
+            BasisCurve=circle,
+            Trim1=self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=0.0),
+            Trim2=self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=degree),
+            SenseAgreement=True,
+            MasterRepresentation='PARAMETER'
+        )
+
+    def create_composite_curve_segment_circular(
+        self,
+        center: tuple[float, float],
+        radius: float,
+        degree: float,
+        direction: tuple[float, float] | None = None
+    ) -> entity_instance:
+
+        curve = self.create_circle(center=center, radius=radius, degree=degree, direction=direction)
+        return self.writer.model.create_entity(
+            type="IfcCompositeCurveSegment",
+            Transition="CONTINUOUS",
+            SameSense=False,
+            ParentCurve=curve
+        )
+
+    def create_arbitrary_closed_profile_def(
+        self,
+        profile_name: str,
+        outer_curve: entity_instance
+    ) -> entity_instance:
+        if profile_name in self.writer.profiles.keys():
+            raise ValueError(f"Duplication Error : Profile '{profile_name}' already exists.")
+
+        profile = self.writer.model.create_entity(
+            type="IfcArbitraryClosedProfileDef",
+            ProfileType="AREA",
+            ProfileName=profile_name,
+            OuterCurve=outer_curve
+        )
+
+        self.writer.profiles[profile_name] = profile
+        return profile
+
+    def create_I_shape_beam_profile(
+        self,
+        profile_name: str,
+        outer_width: float,
+        outer_height: float,
+        flange_thickness: float,
+        web_thickness: float,
+        fillet_radius: float
+    ) -> entity_instance:
+
+        if profile_name in self.writer.profiles.keys():
+            raise ValueError(f"Duplication Error : Profile '{profile_name}' already exists.")
+
+        segment1 = self.create_polyline(
+            pts=[
+                (-outer_width * 0.5, -outer_height * 0.5),
+                (outer_width * 0.5, -outer_height * 0.5)
+            ]
+        )
+
+        segment2 = self.create_polyline(
+            pts=[
+                (outer_width * 0.5, -outer_height * 0.5),
+                (outer_width * 0.5, -outer_height * 0.5 + flange_thickness),
+            ]
+        )
+
+        segment3 = self.create_polyline(
+            pts=[
+                (outer_width * 0.5, -outer_height * 0.5 + flange_thickness),
+                (fillet_radius + web_thickness * 0.5, -outer_height * 0.5 + flange_thickness),
+            ]
+        )
+
+        segment4 = self.create_circle(
+            center=(fillet_radius + web_thickness * 0.5, -outer_height * 0.5 + flange_thickness + fillet_radius),
+            radius=fillet_radius,
+            degree=90,
+            direction=(-1, 0)
+        )
+
+        segment5 = self.create_polyline(
+            pts=[
+                (web_thickness * 0.5, -outer_height * 0.5 + flange_thickness + fillet_radius),
+                (web_thickness * 0.5, outer_height * 0.5 - flange_thickness - fillet_radius),
+            ]
+        )
+
+        segment6 = self.create_circle(
+            center=(fillet_radius + web_thickness * 0.5, outer_height * 0.5 - flange_thickness - fillet_radius),
+            radius=fillet_radius,
+            degree=90,
+            direction=(0, 1)
+        )
+
+        segment7 = self.create_polyline(
+            pts=[
+
+            ]
+        )

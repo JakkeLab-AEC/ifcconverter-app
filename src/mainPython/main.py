@@ -116,54 +116,6 @@ def create_ifc_test(output_file):
     """
     writer = IfcWriter(schema="IFC2x3")
 
-    # Fixed set of storeys for testing
-    # writer.create_storeys({'1F': 0.0, '2F': 3.0, '3F': 6.0})
-
-    # writer.define_material(material_name="CONC1", rgba={'r': 120, 'g': 170, 'b': 170})
-    # writer.define_material(material_name="CONC2", rgba={'r': 120, 'g': 170, 'b': 170})
-    #
-    # layers = [
-    #     {"MaterialName": "CONC1", "LayerThickness": 0.2},
-    #     {"MaterialName": "CONC2", "LayerThickness": 0.3},
-    # ]
-    #
-    # writer.define_wall_type(name="WAL_01", material_layers=layers, material_set_name="WAL_MAT_01")
-    # walls = [
-    #     {"p1": (1., 1.), "p2": (1., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-    #     {"p1": (1., 4.), "p2": (8., 4.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-    #     {"p1": (8., 4.), "p2": (8., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-    #     {"p1": (8., 1.), "p2": (1., 1.), "elevation": 0.5, "height": 3, "wall_type_name": "WAL_01"},
-    # ]
-    #
-    # for wall in walls:
-    #     writer.create_wall(
-    #         target_storey='1F',
-    #         p1=wall["p1"],
-    #         p2=wall["p2"],
-    #         elevation=wall["elevation"],
-    #         height=wall["height"],
-    #         wall_type_name=wall["wall_type_name"]
-    #     )
-
-    # writer.define_col_type(name='ITypeTest', dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}, extrusion_depth=5.0)
-
-    # writer.create_column(
-    #     col_type_name="Col_01",
-    #     extrusion_depth=3,
-    #     dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
-    #     target_storey='1F',
-    #     coordinate=(1.0, 2.0, 0.0)
-    # )
-
-    # writer.ifcColumnUtil.create_column(
-    #     name="Col_01",
-    #     depth=3.,
-    #     dimension_args={"w": 0.2, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01},
-    #     scale=1.,
-    #     coordinate=(1., 1., 0.),
-    #     target_storey_name="1F"
-    # )
-
     writer.ifcCoreDataUtil.create_storey(
         name="1F",
         elevation=3.
@@ -179,52 +131,36 @@ def create_ifc_test(output_file):
         elevation=9.
     )
 
-    column1 = writer.ifcSharedElementDataUtil.create_column(
-        profile_name="PROF_COL_I_300x300",
-        col_type_name="COL_I_300x300",
-        target_storey_name="1F",
-        coordinate=(1., 1.),
-        base_offset=0.0,
-        height=2.,
-        rotation_degree=30,
-        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-    )
+    # column1 = writer.ifcSharedElementDataUtil.create_column(
+    #     profile_name="PROF_COL_I_300x300",
+    #     col_type_name="COL_I_300x300",
+    #     target_storey_name="1F",
+    #     coordinate=(1., 1.),
+    #     base_offset=0.0,
+    #     height=2.,
+    #     rotation_degree=30,
+    #     profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    # )
 
-    column2 = writer.ifcSharedElementDataUtil.create_column(
-        profile_name="PROF_COL_I_300x300",
-        col_type_name="COL_I_300x300",
-        target_storey_name="1F",
-        coordinate=(1., 6.),
-        base_offset=-1.0,
-        height=4.,
-        rotation_degree=30,
-        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-    )
+    # writer.ifcResourceEntityUtil.create_material(
+    #     name="STEEL_RED",
+    #     rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
+    # )
+    #
+    # writer.ifcResourceEntityUtil.assign_material(
+    #     material_name="STEEL_RED",
+    #     target_objects=[column1]
+    # )
+    #
+    # writer.ifcResourceEntityUtil.assign_material(
+    #     material_name="STEEL_RED",
+    #     target_objects=[writer.element_types["column_types"]["COL_I_300x300"]["Entity"]]
+    # )
+    #
+    # writer.ifcResourceEntityUtil.create_trimmed_curve()
 
-    column3 = writer.ifcSharedElementDataUtil.create_column(
-        profile_name="PROF_COL_I_300x300",
-        col_type_name="COL_I_300x300",
-        target_storey_name="1F",
-        coordinate=(1., 11.),
-        base_offset=1.0,
-        height=3.,
-        rotation_degree=30,
-        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-    )
+    writer.ifcResourceEntityUtil.create_arbitrary_closed_profile_def(
 
-    writer.ifcResourceEntityUtil.create_material(
-        name="STEEL_RED",
-        rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
-    )
-
-    writer.ifcResourceEntityUtil.assign_material(
-        material_name="STEEL_RED",
-        target_objects=[column1, column2, column3]
-    )
-
-    writer.ifcResourceEntityUtil.assign_material(
-        material_name="STEEL_RED",
-        target_objects=[writer.element_types["column_types"]["COL_I_300x300"]["Entity"]]
     )
 
     writer.save(output_file)
