@@ -131,36 +131,31 @@ def create_ifc_test(output_file):
         elevation=9.
     )
 
-    # column1 = writer.ifcSharedElementDataUtil.create_column(
-    #     profile_name="PROF_COL_I_300x300",
-    #     col_type_name="COL_I_300x300",
-    #     target_storey_name="1F",
-    #     coordinate=(1., 1.),
-    #     base_offset=0.0,
-    #     height=2.,
-    #     rotation_degree=30,
-    #     profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-    # )
+    beam1 = writer.ifcSharedElementDataUtil.create_beam(
+        profile_name="BEAM_I_300x300",
+        beam_type_name="BEAM_I_300x300",
+        target_storey_name="1F",
+        pt_start=(0., 0.),
+        pt_end=(4., 3.),
+        rotation_degree=30,
+        z_offset=-1.,
+        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
 
-    # writer.ifcResourceEntityUtil.create_material(
-    #     name="STEEL_RED",
-    #     rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
-    # )
-    #
-    # writer.ifcResourceEntityUtil.assign_material(
-    #     material_name="STEEL_RED",
-    #     target_objects=[column1]
-    # )
-    #
-    # writer.ifcResourceEntityUtil.assign_material(
-    #     material_name="STEEL_RED",
-    #     target_objects=[writer.element_types["column_types"]["COL_I_300x300"]["Entity"]]
-    # )
-    #
-    # writer.ifcResourceEntityUtil.create_trimmed_curve()
+    writer.ifcResourceEntityUtil.create_material(
+        name="STEEL_RED",
+        rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
+    )
 
-    writer.ifcResourceEntityUtil.create_arbitrary_closed_profile_def(
+    writer.ifcResourceEntityUtil.assign_material(
+        material_name="STEEL_RED",
+        target_objects=[beam1]
+    )
 
+    print(writer.element_types["beam_types"])
+    writer.ifcResourceEntityUtil.assign_material(
+        material_name="STEEL_RED",
+        target_objects=[writer.element_types["beam_types"]["BEAM_I_300x300"]["Entity"]]
     )
 
     writer.save(output_file)

@@ -2,6 +2,7 @@ from dist.mainPython.ifcWriter import IfcWriter
 from typing import Literal
 from ifcopenshell import entity_instance
 import ifcopenshell.guid
+import math
 
 class IfcResourceEntityUtil:
     def __init__(self, ifc_writer: IfcWriter):
@@ -130,7 +131,7 @@ class IfcResourceEntityUtil:
         swept_area: entity_instance,
         z_coordinate: float,
         extruded_direction: entity_instance,
-        depth: float
+        depth: float,
     ) -> entity_instance:
         """
         Create extruded area solid. Adjusting z_coordinate makes difference while placing the extrusion.
@@ -142,6 +143,7 @@ class IfcResourceEntityUtil:
         :param extruded_direction: Entity of IfcDirection
         :param depth: Extrusion distance.
         """
+
         position=self.create_axis2placement_3d(
             location=self.create_cartesian_point_3d((0.,0.,-z_coordinate)),
             axis=self.create_direction_3d((0.,0.,1.)),
@@ -153,6 +155,38 @@ class IfcResourceEntityUtil:
             SweptArea=swept_area,
             Position=position,
             ExtrudedDirection=extruded_direction,
+            Depth=depth
+        )
+
+    def create_extruded_area_solid_beam(
+        self,
+        swept_area: entity_instance,
+        extruded_direction: entity_instance,
+        depth: float,
+        rotation_degree: float = 0.,
+    ) -> entity_instance:
+        """
+        Create extruded area solid. Adjusting z_coordinate makes difference while placing the extrusion.
+        1. When z_coordinate is same with elevation of the linked building storey, extrusion places on that level.
+        2. When higher or lower, the entity will be placed above or below of the difference of values.
+           (Example: Elevation 2000, z_coordinate 2000, base offset is 0. 3000 and 2000, base offset is 1000)
+        :param swept_area: Entity of IfcProfileDef
+        :param z_coordinate: Absolute level of extrusion's base level,
+        :param extruded_direction: Entity of IfcDirection
+        :param depth: Extrusion distance.
+        """
+        radian = -math.radians(rotation_degree)
+        position=self.create_axis2placement_3d(
+            location=self.writer.origin3d,
+            axis=extruded_direction,
+            ref_direction=self.create_direction_3d((0.0, math.cos(radian), math.sin(radian)))
+        )
+
+        return self.writer.model.create_entity(
+            type="IfcExtrudedAreaSolid",
+            SweptArea=swept_area,
+            Position=position,
+            ExtrudedDirection=self.writer.axis_z_neg,
             Depth=depth
         )
 
@@ -286,7 +320,7 @@ class IfcResourceEntityUtil:
         context_identifier: str|None=None,
         context_type: Literal["Model", "Plan", "NotDefined"]|None = None,
         target_scale: float=1.0,
-        target_view: str="MODEL_VIEW",
+        target_view: str=Literal["MODEL_VIEW", "GRAPH_VIEW", "Box", "FootPrint"],
         user_defined_target_view: str|None=None
     ) -> entity_instance:
         """
@@ -329,9 +363,9 @@ class IfcResourceEntityUtil:
     def create_rel_defines_by_type(
         self,
         name: str,
-        description: str,
         related_objects: set[entity_instance],
         relating_type: entity_instance,
+        description: str | None = None,
         owner_history: entity_instance | None = None,
     ) -> entity_instance:
         """
@@ -561,8 +595,8 @@ class IfcResourceEntityUtil:
         return self.writer.model.create_entity(
             type="IfcTrimmedCurve",
             BasisCurve=circle,
-            Trim1=self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=0.0),
-            Trim2=self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=degree),
+            Trim1=[self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=0.0)],
+            Trim2=[self.writer.model.create_entity(type="IfcParameterValue", wrappedValue=degree)],
             SenseAgreement=True,
             MasterRepresentation='PARAMETER'
         )
@@ -601,11 +635,21 @@ class IfcResourceEntityUtil:
         self.writer.profiles[profile_name] = profile
         return profile
 
+    def create_composite_curve(
+        self,
+        segments: list[entity_instance],
+    ) -> entity_instance:
+        return self.writer.model.create_entity(
+            type="IfcCompositeCurve",
+            Segments=segments,
+            SelfIntersect=False
+        )
+
     def create_I_shape_beam_profile(
         self,
         profile_name: str,
-        outer_width: float,
-        outer_height: float,
+        overall_width: float,
+        overall_depth: float,
         flange_thickness: float,
         web_thickness: float,
         fillet_radius: float
@@ -614,50 +658,141 @@ class IfcResourceEntityUtil:
         if profile_name in self.writer.profiles.keys():
             raise ValueError(f"Duplication Error : Profile '{profile_name}' already exists.")
 
-        segment1 = self.create_polyline(
+        segment1 = self.create_composite_curve_segment_linear(
             pts=[
-                (-outer_width * 0.5, -outer_height * 0.5),
-                (outer_width * 0.5, -outer_height * 0.5)
+                (-overall_width * 0.5, -overall_depth * 0.5),
+                (overall_width * 0.5, -overall_depth * 0.5)
             ]
         )
 
-        segment2 = self.create_polyline(
+        segment2 = self.create_composite_curve_segment_linear(
             pts=[
-                (outer_width * 0.5, -outer_height * 0.5),
-                (outer_width * 0.5, -outer_height * 0.5 + flange_thickness),
+                (overall_width * 0.5, -overall_depth * 0.5),
+                (overall_width * 0.5, -overall_depth * 0.5 + flange_thickness),
             ]
         )
 
-        segment3 = self.create_polyline(
+        segment3 = self.create_composite_curve_segment_linear(
             pts=[
-                (outer_width * 0.5, -outer_height * 0.5 + flange_thickness),
-                (fillet_radius + web_thickness * 0.5, -outer_height * 0.5 + flange_thickness),
+                (overall_width * 0.5, -overall_depth * 0.5 + flange_thickness),
+                (fillet_radius + web_thickness * 0.5, -overall_depth * 0.5 + flange_thickness),
             ]
         )
 
-        segment4 = self.create_circle(
-            center=(fillet_radius + web_thickness * 0.5, -outer_height * 0.5 + flange_thickness + fillet_radius),
+        segment4 = self.create_composite_curve_segment_circular(
+            center=(fillet_radius + web_thickness * 0.5, -overall_depth * 0.5 + flange_thickness + fillet_radius),
             radius=fillet_radius,
             degree=90,
-            direction=(-1, 0)
+            direction=(-1., 0.)
         )
 
-        segment5 = self.create_polyline(
+        segment5 = self.create_composite_curve_segment_linear(
             pts=[
-                (web_thickness * 0.5, -outer_height * 0.5 + flange_thickness + fillet_radius),
-                (web_thickness * 0.5, outer_height * 0.5 - flange_thickness - fillet_radius),
+                (web_thickness * 0.5, -overall_depth * 0.5 + flange_thickness + fillet_radius),
+                (web_thickness * 0.5, overall_depth * 0.5 - flange_thickness - fillet_radius),
             ]
         )
 
-        segment6 = self.create_circle(
-            center=(fillet_radius + web_thickness * 0.5, outer_height * 0.5 - flange_thickness - fillet_radius),
+        segment6 = self.create_composite_curve_segment_circular(
+            center=(fillet_radius + web_thickness * 0.5, overall_depth * 0.5 - flange_thickness - fillet_radius),
             radius=fillet_radius,
-            degree=90,
-            direction=(0, 1)
+            degree=90.,
+            direction=(0., 1.)
         )
 
-        segment7 = self.create_polyline(
+        segment7 = self.create_composite_curve_segment_linear(
             pts=[
-
+                (fillet_radius + web_thickness * 0.5, overall_depth * 0.5 - flange_thickness),
+                (overall_width * 0.5, overall_depth * 0.5 - flange_thickness),
             ]
         )
+
+        segment8 = self.create_composite_curve_segment_linear(
+            pts=[
+                (overall_width * 0.5, overall_depth * 0.5 - flange_thickness),
+                (overall_width * 0.5, overall_depth * 0.5),
+            ]
+        )
+
+        segment9 = self.create_composite_curve_segment_linear(
+            pts=[
+                (overall_width * 0.5, overall_depth * 0.5),
+                (-overall_width * 0.5, overall_depth * 0.5),
+            ]
+        )
+
+        segment10 = self.create_composite_curve_segment_linear(
+            pts=[
+                (-overall_width * 0.5, overall_depth * 0.5),
+                (-overall_width * 0.5, overall_depth * 0.5 - flange_thickness),
+            ]
+        )
+
+        segment11 = self.create_composite_curve_segment_linear(
+            pts=[
+                (-overall_width * 0.5, overall_depth * 0.5 - flange_thickness),
+                (-(web_thickness * 0.5 + fillet_radius), overall_depth * 0.5 - flange_thickness),
+            ]
+        )
+
+        segment12 = self.create_composite_curve_segment_circular(
+            center=(-(fillet_radius + web_thickness * 0.5), overall_depth * 0.5 - (flange_thickness + fillet_radius)),
+            radius=fillet_radius,
+            degree=90.,
+            direction=(1., 0.)
+        )
+
+        segment13 = self.create_composite_curve_segment_linear(
+            pts=[
+                (-web_thickness * 0.5, overall_depth * 0.5 - (flange_thickness + fillet_radius)),
+                (-web_thickness * 0.5, - overall_depth * 0.5 + (flange_thickness + fillet_radius)),
+            ]
+        )
+
+        segment14 = self.create_composite_curve_segment_circular(
+            center=(-(fillet_radius + web_thickness * 0.5), -overall_depth * 0.5 + (flange_thickness + fillet_radius)),
+            radius=fillet_radius,
+            degree=90.,
+            direction=(0., -1.)
+        )
+
+        segment15 = self.create_composite_curve_segment_linear(
+            pts=[
+                (-(fillet_radius + web_thickness * 0.5), -overall_depth * 0.5 + flange_thickness),
+                (-overall_width * 0.5, -overall_depth * 0.5 + flange_thickness),
+            ]
+        )
+
+        segment16 = self.create_composite_curve_segment_linear(
+            pts=[
+                (-overall_width * 0.5, -overall_depth * 0.5 + flange_thickness),
+                (-overall_width * 0.5, -overall_depth * 0.5),
+            ]
+        )
+
+        segments = [
+            segment1, segment2,
+            segment3, segment4,
+            segment5, segment6,
+            segment7, segment8,
+            segment9, segment10,
+            segment11, segment12,
+            segment13, segment14,
+            segment15, segment16,
+        ]
+
+        composite_curve = self.create_composite_curve(
+            segments=segments
+        )
+
+        profile = self.create_arbitrary_closed_profile_def(
+            profile_name=profile_name,
+            outer_curve=composite_curve
+        )
+
+        self.writer.profiles[profile_name] = profile
+        return profile
+
+
+
+

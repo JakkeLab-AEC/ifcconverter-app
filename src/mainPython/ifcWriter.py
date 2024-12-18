@@ -1,7 +1,6 @@
 from typing import Literal
 import math
 
-import numpy
 import ifcopenshell
 import ifcopenshell.api
 import ifcopenshell.api.root
@@ -175,14 +174,18 @@ class IfcWriter:
         self.schema = schema
 
         # Import utils
-        from utils.ifcColumnUtils import IfcColumnUtil
         from utils.ifcResourceEntityUtils import IfcResourceEntityUtil
         from utils.ifcCoreDataUtils import IfcCoreDataUtil
         from utils.ifcSharedElementDataUtil import IfcSharedElementDataUtil
-        self.ifcColumnUtil = IfcColumnUtil(self)
-        self.ifcResourceEntityUtil = IfcResourceEntityUtil(self)
-        self.ifcCoreDataUtil = IfcCoreDataUtil(self)
-        self.ifcSharedElementDataUtil = IfcSharedElementDataUtil(self)
+
+        ifcResourceEntityUtil = IfcResourceEntityUtil(self)
+        self.ifcResourceEntityUtil = ifcResourceEntityUtil
+
+        ifcCoreDataUtil = IfcCoreDataUtil(self)
+        self.ifcCoreDataUtil = ifcCoreDataUtil
+
+        ifcSharedElementDataUtil = IfcSharedElementDataUtil(self)
+        self.ifcSharedElementDataUtil = ifcSharedElementDataUtil
 
         application = ifcopenshell.api.owner.add_application(model)
 
@@ -229,9 +232,6 @@ class IfcWriter:
         ifcopenshell.api.aggregate.assign_object(model, relating_object=project, products=[site])
         ifcopenshell.api.aggregate.assign_object(model, relating_object=site, products=[building])
 
-        # Add context, body
-        context = ifcopenshell.api.context.add_context(model, context_type="Model")
-        body = ifcopenshell.api.context.add_context(model, context_type="Model", context_identifier="Body", target_view="MODEL_VIEW", parent=context)
 
         # Save properties
         self.model = model
@@ -239,8 +239,6 @@ class IfcWriter:
         self.units = units
         self.site = site
         self.building = building
-        self.context = context
-        self.body = body
         self.users: dict[str, UserData] = {
             registered_person.identification: registered_person
         }
@@ -252,144 +250,80 @@ class IfcWriter:
         self.element_types: dict[str, dict[str, dict[str, any]]] = {
             "wall_types" : {},
             "column_types" : {},
+            "beam_types" : {}
         }
         self.styles = {}
         self.profiles: dict[str, entity_instance] = {}
         self.geometric_representation_subContext: dict[str, entity_instance] = {}
 
-        self.origin2d = self.ifcResourceEntityUtil.create_cartesian_point_2d((0., 0.))
-        self.origin3d = self.ifcResourceEntityUtil.create_cartesian_point_3d((0.0, 0.0, 0.0))
-        self.axis_z = self.ifcResourceEntityUtil.create_direction_3d((0., 0., 1.))
-        self.axis_x_2d = self.ifcResourceEntityUtil.create_direction_2d((1., 0.))
-        self.axis_y_2d = self.ifcResourceEntityUtil.create_direction_2d((0., 1.))
-        self.axis_x_2d_neg = self.ifcResourceEntityUtil.create_direction_2d((-1., 0.))
-        self.axis_y_2d_neg = self.ifcResourceEntityUtil.create_direction_2d((0., -1.))
-        self.axis_x_3d = self.ifcResourceEntityUtil.create_direction_3d((1., 0., 0.))
-        self.axis_y_3d = self.ifcResourceEntityUtil.create_direction_3d((0., 1., 0.))
+        origin2d = ifcResourceEntityUtil.create_cartesian_point_2d((0., 0.))
+        self.origin2d = origin2d
 
+        origin3d = ifcResourceEntityUtil.create_cartesian_point_3d((0.0, 0.0, 0.0))
+        self.origin3d = origin3d
 
-    # Storey
-    def create_storey(self, storey_name: str, elevation: float) -> entity_instance:
-        """
-        Create a single storey (IfcBuildingStorey) with a specified name and elevation.
+        axis_z = ifcResourceEntityUtil.create_direction_3d((0., 0., 1.))
+        self.axis_z = axis_z
 
-        :param storey_name: Name of the storey (must be unique).
-        :param elevation: Elevation (height) of the storey in the building's coordinate system.
-        :return: The created IfcBuildingStorey entity instance.
+        axis_z_neg = ifcResourceEntityUtil.create_direction_3d((0., 0., -1.))
+        self.axis_z_neg = axis_z_neg
 
-        - Updates the building's aggregated storeys.
-        - Raises a ValueError if the storey name already exists in the project.
-        """
-        if storey_name in self.elements.keys():
-            raise ValueError(f'Duplication Error : Storey named "{storey_name}" already exist on the project.')
+        axis_x_2d = ifcResourceEntityUtil.create_direction_2d((1., 0.))
+        self.axis_x_2d = axis_x_2d
 
-        storey = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcBuildingStorey", name=storey_name)
-        storey.Elevation = elevation
+        axis_y_2d = ifcResourceEntityUtil.create_direction_2d((0., 1.))
+        self.axis_y_2d = axis_y_2d
 
-        storey_placement = self.ifcColumnUtil.create_storey_location(elevation)
-        storey.ObjectPlacement = storey_placement
+        axis_x_2d_neg = ifcResourceEntityUtil.create_direction_2d((-1., 0.))
+        self.axis_x_2d_neg = axis_x_2d_neg
 
-        existing_storeys = []
-        for rel in self.model.by_type("IfcRelAggregates"):
-            if rel.RelatingObject == self.building:
-                existing_storeys.extend(obj for obj in rel.RelatedObjects if obj.is_a("IfcBuildingStorey"))
+        axis_y_2d_neg = ifcResourceEntityUtil.create_direction_2d((0., -1.))
+        self.axis_y_2d_neg = axis_y_2d_neg
 
-        # Add new storey
-        updated_storeys = existing_storeys + [storey]
-        ifcopenshell.api.aggregate.assign_object(self.model, relating_object=self.building, products=updated_storeys)
+        axis_x_3d = ifcResourceEntityUtil.create_direction_3d((1., 0., 0.))
+        self.axis_x_3d = axis_x_3d
 
-        # Update writer
-        self.storeys[storey_name] = storey
-        return storey
+        axis_x_3d_neg = ifcResourceEntityUtil.create_direction_3d((-1., 0., 0.))
+        self.axis_x_3d_neg = axis_x_3d_neg
 
-    def create_storeys(self, storey_definitions: dict[str, float]) -> dict[str, entity_instance]:
-        """
-        Create multiple storeys based on a dictionary of definitions.
+        axis_y_3d = ifcResourceEntityUtil.create_direction_3d((0., 1., 0.))
+        self.axis_y_3d = axis_y_3d
 
-        :param storey_definitions: A dictionary where:
-                                   - Keys are storey names (str).
-                                   - Values are elevations (float).
-                                   Example: {"Ground Floor": 0.0, "First Floor": 3.0}.
-        :return: A dictionary with storey names as keys and IfcBuildingStorey instances as values.
-
-        - Calls `create_storey` for each entry in the dictionary.
-        - Skips storeys with duplicate names and logs the error.
-        """
-        created_storeys = {}
-
-        for storey_name, elevation in storey_definitions.items():
-            try:
-                # Create each storey using the existing create_storey method
-                storey = self.create_storey(storey_name=storey_name, elevation=elevation)
-                created_storeys[storey_name] = storey
-            except ValueError as e:
-                print(f"Error: {e} (Skipped {storey_name})")
-
-        return created_storeys
-
-    # Material
-    def define_material(self, material_name: str, rgba: dict[str, float]=None,  material_description: str=None, material_category: str=None)->entity_instance:
-        if material_name in self.materials.keys():
-            raise ValueError(f"Material named {material_name} is already exist.")
-
-        material = ifcopenshell.api.material.add_material(
-            self.model,
-            name=material_name,
-            category=material_category,
-            description=material_description
-        ) if self.schema == "IFC4" else ifcopenshell.api.material.add_material(
-            self.model,
-            name=material_name
+        # Define context, sub contexts
+        context = ifcResourceEntityUtil.create_geometric_representation_context(
+            coordinate_space_dimension=3,
+            context_type="Model",
         )
 
-        style = ifcopenshell.api.style.add_style(self.model, name=material_name)
-
-        if rgba is None:
-            rgba = {'r': 128, 'g': 128, 'b': 128, 'a': 1}
-        elif 'r' not in rgba.keys() and 'g' not in rgba.keys() and 'b' not in rgba.keys():
-            ValueError("The parameter rgba should contain 'r', 'g', 'b' values as float type.")
-
-        style_attribute = {
-            "SurfaceColour": { "Name": f"SRF_{material_name}", "Red": rgba['r']/255, "Green": rgba['g']/255, "Blue": rgba['b']/255 },
-        }
-
-        if self.schema == 'IFC4' and 'a' in rgba.keys():
-            style_attribute["Transparency"] = rgba['a']
-
-        ifcopenshell.api.style.add_surface_style(
-            self.model,
-            style=style,
-            ifc_class="IfcSurfaceStyleShading",
-            attributes=style_attribute
+        sub_context_axis = ifcResourceEntityUtil.create_geometric_representation_sub_context(
+            parent_context=context,
+            context_identifier="Axis",
+            target_view="GRAPH_VIEW"
         )
 
-        ifcopenshell.api.style.assign_material_style(self.model, material=material, style=style, context=self.body)
-        self.styles[material_name] = style
-        self.materials[material_name] = material
+        sub_context_body = ifcResourceEntityUtil.create_geometric_representation_sub_context(
+            parent_context=context,
+            context_identifier="Body",
+            target_view="MODEL_VIEW"
+        )
 
-        return material
+        sub_context_box = ifcResourceEntityUtil.create_geometric_representation_sub_context(
+            parent_context=context,
+            context_identifier="Box",
+            target_view="MODEL_VIEW"
+        )
 
-    def define_material_set(self, name: str, layers: list[dict[str, str|float]]) -> dict[str, any]:
-        if name in self.material_sets.keys():
-            raise ValueError(f"Duplication Error : Material set named '{name}' is already exist.")
+        sub_context_footprint = ifcResourceEntityUtil.create_geometric_representation_sub_context(
+            parent_context=context,
+            context_identifier="FootPrint",
+            target_view="MODEL_VIEW"
+        )
 
-        material_set = ifcopenshell.api.material.add_material_set(self.model, name=name, set_type="IfcMaterialLayerSet")
-
-        total_thickness = 0
-        for layer_prop in layers:
-            if layer_prop['MaterialName'] not in self.materials.keys():
-                raise ValueError(f"Invalid Value Error : Material named '{layer_prop['MaterialName']}' is not defined.")
-            if layer_prop['LayerThickness'] is None:
-                raise ValueError(f"Invalid Value Error : LayerThickness is not given.")
-
-            material = self.materials[layer_prop['MaterialName']]
-            thickness = layer_prop['LayerThickness']
-            layer = ifcopenshell.api.material.add_layer(self.model, layer_set=material_set, material=material)
-            ifcopenshell.api.material.edit_layer(self.model, layer=layer, attributes={"LayerThickness": thickness})
-            total_thickness += thickness
-
-        self.material_sets[name] = material_set
-        return {"MaterialSet": material_set, "TotalThickness": total_thickness}
+        self.context = context
+        self.sub_context_body = sub_context_body
+        self.sub_context_axis = sub_context_axis
+        self.sub_context_box = sub_context_box
+        self.sub_context_footprint = sub_context_footprint
 
     def define_wall_type(
             self,
@@ -477,62 +411,6 @@ class IfcWriter:
         ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[wall])
 
         return wall
-
-    def create_column(
-        self,
-        col_type_name: str,
-        extrusion_depth: float,
-        target_storey: str,
-        dimension_args: dict[str, float],
-        coordinate: tuple[float, float, float]
-    ):
-        if col_type_name in self.element_types['column_types'].keys():
-            col_type = self.element_types['column_types'][col_type_name]['Entity']
-        else:
-            col_type = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumnType", name=col_type_name)
-            self.element_types['column_types'][col_type_name] = {'Entity' : col_type}
-
-        if self.storeys[target_storey] is None:
-            raise ValueError(f'The storey {target_storey} does not exist.')
-
-        storey = self.storeys[target_storey]
-
-        profile = self.model.create_entity(
-            type="IfcIShapeProfileDef",
-            ProfileName=f"PROF_{col_type_name}",
-            ProfileType="AREA",
-            OverallWidth=dimension_args['w'],
-            OverallDepth=dimension_args['h'],
-            WebThickness=dimension_args['tw'],
-            FlangeThickness=dimension_args['tf'],
-            FilletRadius=dimension_args['r']
-        )
-
-        steel = ifcopenshell.api.material.add_material(self.model, name="ST01", category="steel")
-
-        material_set = ifcopenshell.api.material.add_material_set(self.model, name="B1", set_type="IfcMaterialProfileSet")
-
-        ifcopenshell.api.material.add_profile(
-            file=self.model,
-            material=steel,
-            profile=profile,
-            profile_set=material_set
-        )
-
-        ifcopenshell.api.material.assign_material(self.model, products=[col_type], material=material_set)
-        column = ifcopenshell.api.root.create_entity(self.model, ifc_class="IfcColumn")
-
-        ifcopenshell.api.type.assign_type(self.model, related_objects=[column], relating_type=col_type)
-        body = ifcopenshell.util.representation.get_context(self.model, context="Model", subcontext="Body", target_view="MODEL_VIEW")
-        representation = ifcopenshell.api.geometry.add_profile_representation(self.model, context=body, profile=profile, depth=extrusion_depth)
-
-        ifcopenshell.api.geometry.assign_representation(self.model, product=column, representation=representation)
-        ifcopenshell.api.spatial.assign_container(self.model, relating_structure=storey, products=[column])
-
-        matrix = numpy.eye(4)
-        matrix[:, 3][0:3] = coordinate
-
-        ifcopenshell.api.geometry.edit_object_placement(self.model, product=column, matrix=matrix, is_si=True)
 
     def query_test(self):
         query = "IfcBuildingStorey"
