@@ -131,32 +131,45 @@ def create_ifc_test(output_file):
         elevation=9.
     )
 
-    beam1 = writer.ifcSharedElementDataUtil.create_beam(
-        profile_name="BEAM_I_300x300",
-        beam_type_name="BEAM_I_300x300",
-        target_storey_name="1F",
-        pt_start=(0., 0.),
-        pt_end=(4., 3.),
-        rotation_degree=30,
-        z_offset=-1.,
-        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-    )
+    # beam1 = writer.ifcSharedElementDataUtil.create_beam(
+    #     profile_name="BEAM_I_300x300",
+    #     beam_type_name="BEAM_I_300x300",
+    #     target_storey_name="1F",
+    #     pt_start=(0., 0.),
+    #     pt_end=(4., 3.),
+    #     rotation_degree=30,
+    #     z_offset=-1.,
+    #     profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    # )
+    #
+    # beam2 = writer.ifcSharedElementDataUtil.create_beam(
+    #     profile_name="BEAM_I_300x300",
+    #     beam_type_name="BEAM_I_300x300",
+    #     target_storey_name="1F",
+    #     pt_start=(4., 4.),
+    #     pt_end=(7., 7.),
+    #     rotation_degree=30,
+    #     z_offset=-1.,
+    #     profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    # )
+    #
+    # writer.ifcResourceEntityUtil.create_material(
+    #     name="STEEL_RED",
+    #     rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
+    # )
+    #
+    # writer.ifcResourceEntityUtil.assign_material(
+    #     material_name="STEEL_RED",
+    #     target_objects=[beam1]
+    # )
+    #
+    # print(writer.element_types["beam_types"])
+    # writer.ifcResourceEntityUtil.assign_material(
+    #     material_name="STEEL_RED",
+    #     target_objects=[writer.element_types["beam_types"]["BEAM_I_300x300"]["Entity"]]
+    # )
 
-    writer.ifcResourceEntityUtil.create_material(
-        name="STEEL_RED",
-        rgba={"r": 255, "g": 120, "b": 120, "a": 0.8},
-    )
-
-    writer.ifcResourceEntityUtil.assign_material(
-        material_name="STEEL_RED",
-        target_objects=[beam1]
-    )
-
-    print(writer.element_types["beam_types"])
-    writer.ifcResourceEntityUtil.assign_material(
-        material_name="STEEL_RED",
-        target_objects=[writer.element_types["beam_types"]["BEAM_I_300x300"]["Entity"]]
-    )
+    writer.ifcSharedElementDataUtil.test_sloped_extrusion()
 
     writer.save(output_file)
 

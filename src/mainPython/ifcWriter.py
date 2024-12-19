@@ -250,7 +250,9 @@ class IfcWriter:
         self.element_types: dict[str, dict[str, dict[str, any]]] = {
             "wall_types" : {},
             "column_types" : {},
-            "beam_types" : {}
+            "beam_types" : {},
+            "ea_single_types": {},
+            "ea_double_types": {},
         }
         self.styles = {}
         self.profiles: dict[str, entity_instance] = {}
@@ -416,6 +418,8 @@ class IfcWriter:
         query = "IfcBuildingStorey"
         filtered_elements = list(ifcopenshell.util.selector.filter_elements(self.model, query=query))
         result_dict = {item.Name: item for item in filtered_elements}
+
+        return result_dict
 
     def save(self, output_file):
         """

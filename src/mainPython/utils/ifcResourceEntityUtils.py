@@ -194,7 +194,7 @@ class IfcResourceEntityUtil:
         self,
         context_of_items: entity_instance,
         representation_identifier: Literal["Body", "Axis", "Box", "Footprint"],
-        representation_type: Literal["SweptSolid", "MappedRepresentation"],
+        representation_type: Literal["SweptSolid", "MappedRepresentation", "Brep"],
         items: list[entity_instance],
     ) -> entity_instance:
         """
