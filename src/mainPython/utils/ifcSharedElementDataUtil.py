@@ -4,7 +4,7 @@ from ifcopenshell import entity_instance
 import ifcopenshell.guid
 import ifcopenshell.util.selector
 from dist.mainPython.ifcWriter import IfcWriter
-from dist.mainPython.utils.simpleVectorUtils import SimpleVectorUtil
+from .simpleVectorUtils import SimpleVectorUtil
 
 class IfcSharedElementDataUtil:
     def __init__(self, ifc_writer: IfcWriter):
@@ -378,77 +378,353 @@ class IfcSharedElementDataUtil:
             ObjectPlacement=object_placement,
         )
 
-    def test_sloped_extrusion(self):
+    def test_extrusion(self):
         model = self.writer.model
         owner_history = self.writer.owner_history
-
-        # Define Cartesian Points and Directions
-        origin = model.create_entity("IfcCartesianPoint", Coordinates=(0.0, 0.0, 0.0))
-
         radian = math.radians(60)
-        extrusion_dir = model.create_entity("IfcDirection", DirectionRatios=(0.0, 0.0, 1.0))  # Extrusion direction
-        axis_dir = model.create_entity("IfcDirection", DirectionRatios=(0.0, -math.sin(radian), math.cos(radian)))  # Axis for placement
-        ref_dir = model.create_entity("IfcDirection", DirectionRatios=(0.0, -math.cos(radian), -math.sin(radian)))  # RefDirection for alignment
+        depth = 5.
+        target_storey = self.writer.storeys["1F"]
+        radius=0.1
+        type_name = "TestType_01"
+        coordinate = self.writer.ifcResourceEntityUtil.create_cartesian_point_3d(coordinate=(1., 1., 1.))
 
-        # Axis2Placement3D for placement and orientation
-        placement = model.create_entity(
-            type="IfcAxis2Placement3D",
-            Location=origin,
-            Axis=axis_dir,
-            RefDirection=ref_dir
+        # Create object placement
+        entity_point = self.writer.ifcResourceEntityUtil.create_axis2placement_3d(
+            location=self.writer.origin3d
         )
 
-        # Profile Definition (Circle Example)
-        profile = model.create_entity(
-            "IfcCircleProfileDef",
-            ProfileType="AREA",
-            Radius=0.5,  # Radius of the cylinder
-            Position=model.create_entity(
-                "IfcAxis2Placement2D",
-                Location=model.create_entity("IfcCartesianPoint", Coordinates=(0.0, 0.0)),
-                RefDirection=self.writer.ifcResourceEntityUtil.create_direction_2d((1., 0.))
-            ),
+        entity_placement = self.writer.ifcResourceEntityUtil.create_local_placement(
+            placement_rel_to=target_storey['ObjectPlacement'],
+            relative_placement=entity_point,
         )
 
-        # Extrusion solid with specified extrusion direction
-        extruded_solid = model.create_entity(
-            "IfcExtrudedAreaSolid",
-            SweptArea=profile,
-            Position=placement,
-            ExtrudedDirection=extrusion_dir,  # Use the custom extrusion direction
-            Depth=10,  # Length of the extrusion (distance between (0, 0, 0) and (0, 5, 5))
+        extrusion_placement = self.writer.ifcResourceEntityUtil.create_axis2placement_3d(
+            location=coordinate,
+            axis=self.writer.ifcResourceEntityUtil.create_direction_3d(coordinate=(0., -math.sin(radian), math.cos(radian))),
+            ref_direction=self.writer.ifcResourceEntityUtil.create_direction_3d(coordinate=(0., -math.cos(radian), -math.sin(radian)))
         )
 
-        # Shape representation
-        shape_representation = model.create_entity(
-            "IfcShapeRepresentation",
-            RepresentationIdentifier="Body",
-            RepresentationType="SweptSolid",
-            Items=[extruded_solid],
+        # Create Profiles
+        profile_position=self.writer.ifcResourceEntityUtil.create_axis2placement_2d(
+            location=self.writer.origin2d,
+            ref_direction=self.writer.axis_x_2d
         )
 
-        # Product Definition Shape
-        product_shape = model.create_entity(
-            "IfcProductDefinitionShape", Representations=[shape_representation]
+        profile_name="R10"
+        if profile_name in self.writer.profiles.keys():
+            profile_circle = self.writer.profiles[profile_name]
+        else:
+            profile_circle = model.create_entity(
+                type="IfcCircleProfileDef",
+                ProfileType="AREA",
+                ProfileName=profile_name,
+                Position=profile_position,
+                Radius=radius
+            )
+            self.writer.profiles[profile_name] = profile_circle
+
+        extrusion = model.create_entity(
+            type="IfcExtrudedAreaSolid",
+            Depth=depth,
+            ExtrudedDirection=self.writer.axis_z,
+            Position=extrusion_placement,
+            SweptArea=profile_circle
         )
 
-        # Building Element Proxy with Placement
-        element_placement = model.create_entity(
-            "IfcLocalPlacement",
-            PlacementRelTo=self.writer.storeys["1F"]["ObjectPlacement"],
-            RelativePlacement=placement
+        extrusions = self.create_ea_double_solid(
+            host_wale_b=0.3,
+            host_wale_d=0.3,
+            dipping_degree=30,
+            len_free=6.,
+            len_fixed=5.
         )
 
-        proxy = model.create_entity(
-            "IfcBuildingElementProxy",
+        brep_items = extrusions
+
+        # region Mapping items
+        mapped_representation=self.writer.ifcResourceEntityUtil.create_shape_representation(
+            context_of_items=self.writer.sub_context_body,
+            representation_identifier="Body",
+            representation_type="Brep",
+            items=brep_items
+        )
+
+        mapping_origin = self.writer.ifcResourceEntityUtil.create_axis2placement_3d(
+            location=self.writer.origin3d
+        )
+
+        mapping_source = self.writer.ifcResourceEntityUtil.create_representation_map(
+            mapping_origin=mapping_origin,
+            mapped_representation=mapped_representation
+        )
+
+        mapping_target = self.writer.ifcResourceEntityUtil.create_cartesian_transformation_operator3d(
+            scale=1.0,
+            local_origin=self.writer.origin3d
+        )
+
+        mapped_item = self.writer.ifcResourceEntityUtil.create_mapped_item(
+            mapping_target=mapping_target,
+            mapping_source=mapping_source
+        )
+
+        shape_representation = self.writer.ifcResourceEntityUtil.create_shape_representation(
+            context_of_items=self.writer.sub_context_body,
+            representation_type="MappedRepresentation",
+            representation_identifier="Body",
+            items=[mapped_item]
+        )
+
+        product_definition_shape = self.writer.ifcResourceEntityUtil.create_product_define_shape(
+            representations=[shape_representation]
+        )
+
+        # endregion
+
+        # Create proxy element
+        entity = model.create_entity(
+            type="IfcBuildingElementProxy",
             GlobalId=ifcopenshell.guid.new(),
             OwnerHistory=owner_history,
-            ObjectPlacement=element_placement,
-            Representation=product_shape,
+            ObjectPlacement=entity_placement,
+            Representation=product_definition_shape
         )
 
+        entity_type = model.create_entity(
+            type="IfcBuildingElementProxyType",
+            GlobalId=ifcopenshell.guid.new(),
+            OwnerHistory=owner_history,
+            Name=type_name,
+            PredefinedType="NOTDEFINED",
+            RepresentationMaps=[mapped_item]
+        )
+
+        self.writer.ifcResourceEntityUtil.create_rel_defines_by_type(
+            name=type_name,
+            related_objects=[entity],
+            relating_type=entity_type
+        )
+
+        #Assign storey
         self.writer.ifcCoreDataUtil.create_rel_contained_in_spatial_structure(
-            related_elements=[proxy],
-            relating_structure=self.writer.storeys["1F"]["Entity"]
+            related_elements=[entity],
+            relating_structure=target_storey['Entity'],
+            owner_history=owner_history,
         )
 
+    def create_ea_double_solid(
+        self,
+        host_wale_b: float,
+        host_wale_d: float,
+        dipping_degree: float,
+        len_free: float,
+        len_fixed: float
+    ) -> list[entity_instance]:
+        model = self.writer.model
+        converted_degree = 90 - dipping_degree
+        dipping_radian = math.radians(90 - converted_degree)
+
+        extrusions = []
+
+        # region Extrusion dipping
+        p_free_start = 0.5 * host_wale_d + 0.5 * host_wale_b * math.tan(dipping_radian)
+        p_free_extrusion_start = p_free_start + len_free
+        p_fixed_extrusion_start = p_free_start + len_free + len_fixed
+
+        p_free_extrusion_start_vec = (p_free_extrusion_start * math.cos(dipping_radian), -p_free_extrusion_start * math.sin(dipping_radian))
+        p_fixed_extrusion_start_vec = (p_fixed_extrusion_start * math.cos(dipping_radian), -p_fixed_extrusion_start * math.sin(dipping_radian))
+
+        profile_name_dipping = "R10"
+        if profile_name_dipping in self.writer.profiles.keys():
+            profile_circle = self.writer.profiles[profile_name_dipping]
+        else:
+            profile_position = self.writer.ifcResourceEntityUtil.create_axis2placement_2d(
+                location=self.writer.origin2d,
+                ref_direction=self.writer.axis_x_2d
+            )
+
+            radius = 0.1
+
+            profile_circle = model.create_entity(
+                type="IfcCircleProfileDef",
+                ProfileType="AREA",
+                ProfileName=profile_name_dipping,
+                Position=profile_position,
+                Radius=radius
+            )
+            self.writer.profiles[profile_name_dipping] = profile_circle
+
+        dipping_free = self.create_extrusion_plane_xz(
+            point=p_free_extrusion_start_vec,
+            rotation_degree=converted_degree,
+            profile=profile_circle,
+            depth=len_free
+        )
+
+        dipping_fixed = self.create_extrusion_plane_xz(
+            point=p_fixed_extrusion_start_vec,
+            rotation_degree=converted_degree,
+            profile=profile_circle,
+            depth=len_fixed
+        )
+        extrusions.append(dipping_free)
+        extrusions.append(dipping_fixed)
+        # endregion
+
+        # region Extrusion plate
+        plate_height = 0.3
+        profile_name_plate="RECT_280x300"
+        plate_thickness = 0.01
+        if profile_name_plate in self.writer.profiles.keys():
+            profile_plate = self.writer.profiles[profile_name_plate]
+        else:
+            profile_position = self.writer.ifcResourceEntityUtil.create_axis2placement_2d(
+                location=self.writer.origin2d,
+                ref_direction=self.writer.axis_x_2d
+            )
+
+            profile_plate = model.create_entity(
+                type="IfcRectangleProfileDef",
+                ProfileType="AREA",
+                ProfileName=profile_name_plate,
+                Position=profile_position,
+                XDim=0.28,
+                YDim=plate_height
+            )
+            self.writer.profiles[profile_name_plate] = profile_plate
+
+        plate_start_dist = 0.5 * plate_height * math.tan(dipping_radian) + 0.5 * host_wale_d / math.cos(dipping_radian)
+        plate_start_vector=(-plate_start_dist * math.cos(dipping_radian), plate_start_dist*math.sin(dipping_radian))
+        plate = self.create_extrusion_plane_xz(
+            point=plate_start_vector,
+            rotation_degree=converted_degree,
+            profile=profile_plate,
+            depth=plate_thickness
+        )
+        extrusions.append(plate)
+        # endregion
+
+        # region Extrusion cap
+        profile_name_cap = "C_R120"
+        cap_radius = 0.12
+        cap_depth = 0.12
+        if profile_name_cap in self.writer.profiles.keys():
+            profile_cap = self.writer.profiles[profile_name_cap]
+        else:
+            profile_position = self.writer.ifcResourceEntityUtil.create_axis2placement_2d(
+                location=self.writer.origin2d,
+                ref_direction=self.writer.axis_x_2d
+            )
+
+            radius = cap_radius
+
+            profile_cap = model.create_entity(
+                type="IfcCircleProfileDef",
+                ProfileType="AREA",
+                ProfileName=profile_name_cap,
+                Position=profile_position,
+                Radius=radius,
+            )
+            self.writer.profiles[profile_name_dipping] = profile_circle
+
+        cap_start_dist = plate_start_dist + plate_thickness
+        cap_start_vector = (-cap_start_dist * math.cos(dipping_radian), cap_start_dist * math.sin(dipping_radian))
+        extrusion_cap = self.create_extrusion_plane_xz(
+            point=cap_start_vector,
+            rotation_degree=converted_degree,
+            profile=profile_cap,
+            depth=cap_depth
+        )
+        extrusions.append(extrusion_cap)
+        # endregion
+
+        # region Extra rebar
+        profile_rebar = self.create_extra_rebar_profiles()
+        rebar_start_dist = cap_start_dist + cap_depth
+        rebar_length = 0.3
+        rebar_start_vector = (-rebar_start_dist * math.cos(dipping_radian), rebar_start_dist * math.sin(dipping_radian))
+
+        extrusion_rebars = []
+        for profile in profile_rebar:
+            extrusion_rebar = self.create_extrusion_plane_xz(
+                point=rebar_start_vector,
+                rotation_degree=converted_degree,
+                profile=profile,
+                depth=rebar_length
+            )
+            extrusions.append(extrusion_rebar)
+        # endregion
+
+        return extrusions
+
+    def create_extrusion_plane_xz(
+        self,
+        point: tuple[float, float],
+        rotation_degree: float,
+        profile: entity_instance,
+        depth: float
+    ) -> entity_instance:
+        model = self.writer.model
+        coordinate = self.writer.ifcResourceEntityUtil.create_cartesian_point_3d(coordinate=(point[0], 0., point[1]))
+        radian = math.radians(rotation_degree)
+
+        extrusion_placement = self.writer.ifcResourceEntityUtil.create_axis2placement_3d(
+            location=coordinate,
+            axis=self.writer.ifcResourceEntityUtil.create_direction_3d(
+                coordinate=(-math.sin(radian), 0., math.cos(radian))),
+            ref_direction=self.writer.ifcResourceEntityUtil.create_direction_3d(
+                coordinate=(-math.cos(radian), 0., -math.sin(radian)))
+        )
+
+        extrusion = model.create_entity(
+            type="IfcExtrudedAreaSolid",
+            Depth=depth,
+            ExtrudedDirection=self.writer.axis_z,
+            Position=extrusion_placement,
+            SweptArea=profile
+        )
+
+        return extrusion
+
+    def create_extra_rebar_profiles(
+        self,
+    ) -> [entity_instance]:
+        profile_names = ["PROF_Rebar_1", "PROF_Rebar_2", "PROF_Rebar_3", "PROF_Rebar_4"]
+        profile_name_header = "PROF_Rebar"
+        model = self.writer.model
+        pitch = 0.085
+        rebar_thickness = 0.0115
+        profiles: list[entity_instance] = []
+
+        if set(profile_names).issubset(self.writer.profiles.keys()):
+            profiles = [self.writer.profiles[profile_name] for profile_name in profile_names]
+        else:
+            circle_centers = [
+                (-0.5 * pitch, -0.5 * pitch),
+                (0.5 * pitch, -0.5 * pitch),
+                (0.5 * pitch, 0.5 * pitch),
+                (-0.5 * pitch, 0.5 * pitch),
+            ]
+            radius = rebar_thickness  # Radius of each circle
+
+            i = 1
+            for center in circle_centers:
+                # Create the profile for each circle
+                profile_name = f"{profile_name_header}_{i}"
+                placement = model.create_entity(
+                    "IfcAxis2Placement2D",
+                    Location=model.create_entity("IfcCartesianPoint", Coordinates=center),
+                )
+                profile = model.create_entity(
+                    "IfcCircleProfileDef",
+                    ProfileType="AREA",
+                    Radius=radius,
+                    Position=placement,
+                    ProfileName=profile_name
+                )
+
+                self.writer.profiles[profile_name] = profile
+                i += 1
+                profiles.append(profile)
+
+        return profiles

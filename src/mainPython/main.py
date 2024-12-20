@@ -1,8 +1,13 @@
 import sys
+import os
 import json
 
+current_file_path = os.path.abspath(__file__)
+
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file_path)))
+sys.path.append(project_root)
+
 from ifcWriter import IfcWriter
-import ifcopenshell.util.selector
 
 def handle_message(message) -> dict:
     """
@@ -169,7 +174,7 @@ def create_ifc_test(output_file):
     #     target_objects=[writer.element_types["beam_types"]["BEAM_I_300x300"]["Entity"]]
     # )
 
-    writer.ifcSharedElementDataUtil.test_sloped_extrusion()
+    writer.ifcSharedElementDataUtil.test_extrusion()
 
     writer.save(output_file)
 

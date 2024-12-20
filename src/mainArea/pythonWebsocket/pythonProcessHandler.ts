@@ -68,11 +68,7 @@ export class PythonProcessHandler {
 
             let buffer = '';
 
-            const onData = (chunk: Buffer) => {
-                console.log(`------Chunk Received------`);
-                console.log(chunk.toString());
-                console.log(`--------------------------`);
-    
+            const onData = (chunk: Buffer) => {   
                 buffer += chunk.toString(); // 버퍼를 문자열로 추가
                 if (buffer.trim().endsWith('}')) { // JSON 끝 확인
                     try {

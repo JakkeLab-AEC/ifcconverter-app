@@ -295,6 +295,7 @@ class IfcWriter:
         context = ifcResourceEntityUtil.create_geometric_representation_context(
             coordinate_space_dimension=3,
             context_type="Model",
+            precision=1E-6
         )
 
         sub_context_axis = ifcResourceEntityUtil.create_geometric_representation_sub_context(
