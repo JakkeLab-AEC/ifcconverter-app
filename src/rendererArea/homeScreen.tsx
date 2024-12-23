@@ -1,26 +1,37 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
+import { Header } from './components/window/header';
+import { appInfo } from "../appConfig";
+import { LogBox } from "./components/logbox/logbox";
+import { SetIFCPath } from "./components/packagedComponents/setIfcPath";
+import { LoadedMappingTable } from "./components/packagedComponents/loadedMappingTable";
+import { ProgressBar } from "./components/progressbar/progressbar";
 
-export const HomeScreen = () => {
-    const [receivedMessage, setMessage] = useState<string>('');
-    const ipcTest = async () => {
-        const message = await window.electronIPCElectronTest.sendMessage();
-        if(message) {
-            setMessage(message);
-        }
-    }
-
+export const HomeScreen:React.FC = () => {
+    const ifcFilePathRef = useRef<HTMLInputElement>(null);
     const ipcPythonTest = async () => {
         const message = "Test From Electron";
-        await window.electronIPCElectronTest.sendMessageToPython(message);
+        await window.electronIPCIfcConverter.sendMessageToIfcConverter(message);
     }
 
     return (
-        <div className="p-2 flex flex-col gap-2">
-            <div>
-                Call python
+        <div className="flex flex-col">
+            <div style={{width:'100%'}}>
+                <Header appName={appInfo.ApplicationName} />
             </div>
-            <div>
-                <button className="border" onClick={ipcPythonTest}>IPC Python Test</button>
+            <div className="flex flex-col p-4 gap-2">
+                <SetIFCPath />
+                <hr/>
+                <LoadedMappingTable />
+                <hr/>
+                <div>
+                    <LogBox />
+                </div>
+                <div>
+                    <ProgressBar value={50} />
+                </div>
+                <div>
+                    <button className="border" onClick={ipcPythonTest}>IPC Python Test</button>
+                </div>
             </div>
         </div>
     )

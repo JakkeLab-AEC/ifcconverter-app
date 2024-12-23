@@ -428,4 +428,4 @@ class IfcWriter:
         :param output_file: File path to save IFC file
         """
         self.model.write(output_file)
-        print(f"IFC file saved: {output_file}"),
+        # print(f"IFC file saved: {output_file}"),

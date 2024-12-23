@@ -27,35 +27,33 @@ def handle_message(message) -> dict:
         request = json.loads(message)
         action = request.get('action')
 
-        if action== "greet":
-            return {"status": "success", "message": f"Hello, {request.get('name', 'Guest')}!"}
+        if action== "pythonTest":
+            return {"status":"success","message":f"Hello, {request.get('name', 'Guest')}!"}
 
         elif action == "create_ifc":
             json_data = request.get("data", {})
             output_file = request.get("output_file", "output.ifc")
 
             try:
-                # Create IFC file and return the file path
                 file_path = create_ifc_from_json(json_data, output_file)
-                return {"status": "success", "message": "IFC file created", "file": file_path}
+                return {"response_type": "ifc_create", "status": "success", "message": "IFC file created", "file": file_path}
             except Exception as e:
-                # Return an error if IFC creation fails
-                return {"status": "error", "message": str(e)}
+                return {"response_type": "ifc_create", "status": "error", "message": str(e)}
 
         elif action == "create_ifc_test":
             output_file = request.get("output_file", "output.ifc")
 
             try:
                 file_path = create_ifc_test(output_file)
-                return {"status": "success", "message": "IFC test file created", "file": file_path}
+                return {"status":"success", "message":"IFC test file created", "filePath": file_path}
             except Exception as e:
-                return {"status": "error", "message": str(e)}
+                return {"status":"error", "message": str(e)}
 
         else:
-            return {"status": "error", "message": "Unknown action"}
+            return {"response_type": "unknown_action", "status": "error", "message": "Unknown action"}
 
     except json.JSONDecodeError:
-        return {"status": "error", "message": "Invalid JSON format"}
+        return {"response_type": "invalid_message", "status": "error", "message": "Invalid JSON format"}
 
 def create_ifc_from_json(json_data, output_file):
     """
@@ -79,8 +77,8 @@ def create_ifc_from_json(json_data, output_file):
     writer = IfcWriter()
 
     # Codes will be written here to process `json_data` dynamically
-
     writer.save(output_file)
+    print(json.dumps({"result": "success"}))
     return output_file
 
 # Message handling loop for continuous processing
@@ -97,7 +95,7 @@ def message_loop():
         response = handle_message(line.strip())
 
         # Output the response as JSON
-        print(json.dumps(response))
+        print(json.dumps(response), end='')
         sys.stdout.flush()
 
 def create_ifc_test(output_file):

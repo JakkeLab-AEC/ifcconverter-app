@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Attach",
+        "type": "debugpy",
+        "request": "attach",
+        "connect": {
+          "host": "localhost",
+          "port": 5678
+        },
+        "pathMappings": [
+          {
+            "localRoot": "${workspaceFolder}",  // 로컬 Python 코드 경로
+            "remoteRoot": "${workspaceFolder}" // 스크립트가 실행되는 경로와 매핑
+          }
+        ]
+      }
+    ]
+  }

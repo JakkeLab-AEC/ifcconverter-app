@@ -27,7 +27,11 @@ export class PythonProcessHandler {
             });
 
             this.pyProcess.stdout.on('data', (data) => {
-                console.log(`Python stdout: ${data}`);
+                if(Object.keys(data).length > 0) {
+                    console.log(`Python stdout: ${data}`);
+                } else {
+                    console.log('Python stdout: {}');
+                }
             });
     
             this.pyProcess.stderr.on('data', (data) => {
@@ -67,12 +71,16 @@ export class PythonProcessHandler {
             }
 
             let buffer = '';
-
-            const onData = (chunk: Buffer) => {   
-                buffer += chunk.toString(); // 버퍼를 문자열로 추가
-                if (buffer.trim().endsWith('}')) { // JSON 끝 확인
+            
+            const onData = (chunk: Buffer) => {
+                buffer += chunk.toString(); // 버퍼에 데이터 추가
+                let lines = buffer.split('\n'); // 줄바꿈을 기준으로 나눔
+                buffer = lines.pop() || ''; // 마지막 줄(완성되지 않은 JSON)을 다시 버퍼로 보관
+            
+                for (let line of lines) {
+                    if (line.trim() === '') continue; // 빈 줄 무시
                     try {
-                        const parsed = JSON.parse(buffer.trim()); // JSON 파싱
+                        const parsed = JSON.parse(line.trim()); // JSON 파싱
                         stdout.removeListener('data', onData); // 리스너 해제
                         resolve(parsed);
                     } catch (error) {
@@ -84,12 +92,6 @@ export class PythonProcessHandler {
             stdout.on('data', onData);
             
             stdin.write(message); // Python으로 요청 전송
-
-            //  // 타임아웃 설정
-            // setTimeout(() => {
-            //     stdout.removeListener('data', onData);
-            //     reject('Python process did not respond in time.');
-            // }, 5000); // 5초 제한
         });
     }
 

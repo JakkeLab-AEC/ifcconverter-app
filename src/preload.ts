@@ -1,6 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld('electronIPCElectronTest', {
-    sendMessage: () => ipcRenderer.invoke('electron-test'),
-    sendMessageToPython: (message: string) => ipcRenderer.invoke('electron-python-test', message),
+contextBridge.exposeInMainWorld('electronIPCIfcConverter', {
+    sendMessageToIfcConverter: (message: string) => ipcRenderer.invoke('ifc-create', message),
+});
+
+contextBridge.exposeInMainWorld('electronWindowControlAPI', {
+    minimize: () => ipcRenderer.invoke('window-control-minimize'),
+    maximize: () => ipcRenderer.invoke('window-control-maximize'),
+    quit: () => ipcRenderer.invoke('window-control-quit'),
+});
+
+contextBridge.exposeInMainWorld('electronSystemAPI', {
+    receiveOSInfo: (callback) => ipcRenderer.on('os-info', (_event, osInfo) => callback(osInfo)),
+});
+
+contextBridge.exposeInMainWorld('electronFileIOAPI', {
+    setIfcPath: () => ipcRenderer.invoke('set-ifc-path'),
+    loadMappingTable: () => ipcRenderer.invoke('load-mapping-table')
 });

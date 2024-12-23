@@ -13,6 +13,6 @@
       },
       "esModuleInterop": true,
     },
-    "include": ["src/**/*.ts", "src/main.ts", "src/renderer.ts"],
+    "include": ["src/**/*.ts", "src/main.ts", "src/renderer.ts", "src/mainArea/models/mappableItems"],
     "exclude": ["node_modules"]
   }

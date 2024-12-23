@@ -1,0 +1,39 @@
+.menu-btn-neutral {
+    padding: 4px;
+    border-radius: 8px;
+    background-color: 'none';
+    transition: 0.2s;
+}
+
+.menu-btn-neutral:hover {
+    background-color: var(--key-color-depth2);
+    transition: 0.2s;
+}
+
+.menu-btn-neutral-rect {
+    margin-right: 4px;
+    padding-right: 4px;
+    padding-left: 4px;
+    border-radius: 8px;
+    background-color: 'none';
+    transition: 0.2s;
+    border-width: 2px;
+    color: white
+}
+
+.menu-btn-neutral-rect:hover {
+    background-color: var(--key-color-depth2);
+    transition: 0.2s;
+}
+
+.menu-btn-negative {
+    padding: 4px;
+    border-radius: 8px;
+    background-color: 'none';
+    transition: 0.2s;
+}
+
+.menu-btn-negative:hover {
+    background-color: var(--key-color-negative1);
+    transition: 0.2s;
+}
