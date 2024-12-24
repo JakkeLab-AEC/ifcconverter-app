@@ -7,11 +7,18 @@ export abstract class MappableItem {
         this.requiredParams = new Set();
         this.isValid = this.validate(data);
         if (this.isValid) {
-            this.mappingArgs = new Set(this.requiredParams); // 매핑 인자 설정
+            this.mappingArgs = new Set(this.requiredParams);
         }
     }
 
+    protected abstract validateTypes(data: any): boolean;
+
     validate(data: any): boolean {
-        return Array.from(this.requiredParams).every(param => Object.keys(data).includes(param));
+        const hasRequiredKeys = Array.from(this.requiredParams).every(param=> Object.keys(data).includes(param));
+        if (!hasRequiredKeys) {
+            return false;
+        }
+        
+        return this.validateTypes(data);
     }
 }

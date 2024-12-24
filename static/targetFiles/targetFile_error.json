@@ -1,0 +1,12 @@
+{
+    "Storey": [{
+        "name": "1F",
+        "height": 0.0
+    },{
+        "name": "2F",
+        "height": 3.
+    },{
+        "name": "3F",
+        "height": 6.0
+    }
+}

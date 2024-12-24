@@ -14,7 +14,7 @@ export const Header: React.FC<{appName: string}> = ({appName}) => {
         menuItemProps: [{
             displayString: '매핑 테이블 불러오기',
             isActionIdBased: false,
-            action: async () => { await window.electronFileIOAPI.loadMappingTable() },
+            action: async () => { },
             closeHandler: () => setMenuVisibility(false),
         }],
         width: 180,

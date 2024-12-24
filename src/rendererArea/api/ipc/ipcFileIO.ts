@@ -1,6 +1,7 @@
 export interface IElectronFileIOAPI {
-    setIfcPath:() => Promise<{result: boolean, path?: string, message?: string}>
-    loadMappingTable: () => Promise<{result: boolean, message?: string}>
+    setIfcPath:() => Promise<{result: boolean, path?: string, message?: string}>;
+    setMappingTable: () => Promise<{result: boolean, path?: string, message?: string, errorCode?: string}>;
+    setTargetFilePath: () => Promise<{result: boolean, path?: string, message?: string, errorCode?: string}>;
 }
 
 declare global {

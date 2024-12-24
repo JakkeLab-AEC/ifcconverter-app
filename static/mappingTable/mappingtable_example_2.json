@@ -1,14 +1,5 @@
 {
     "mappingEntity": {
-        "IfcColumn": {
-            "userKey": "Column",
-            "userArgs": {
-                "coordinate": "coordinate",
-                "height": "height",
-                "rotation": "rotation",
-                "targetStorey": "targetStorey"
-            }
-        },
         "IfcBeam": {
             "userKey": "Beam",
             "userArgs": {

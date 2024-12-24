@@ -25,18 +25,15 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
         
                 // JSON 데이터를 기반으로 IFC 파일 생성 요청
                 const jsonData = {
-                    "entities": {
+                    "header": {
                         "action": "create_ifc",
                         "project_name": "My Building Project",
                         "site_name": "my_site",
-                        "elements": [
-                            {}
-                        ],
+                    },
+                    "entities": {
+                        "elements": [],
                         "output_file": outputFile
                     },
-                    "mappingTable": {
-                        
-                    }
                 };
                 
                 const response = await handler.sendMessage(jsonData);

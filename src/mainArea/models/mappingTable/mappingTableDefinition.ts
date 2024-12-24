@@ -1,4 +1,4 @@
-enum MappableIfcClasses {
+export enum MappableIfcClasses {
     IfcBuildingStorey = "IfcBuildingStorey",
     IfcColumn = "IfcColumn",
     IfcBeam = "IfcBeam"

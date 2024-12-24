@@ -1,0 +1,11 @@
+{
+    "mappingEntity": {
+        "IfcBuildingStorey": {
+            "userKey": "Storey",
+            "userArgs": {
+                "name": "name",
+                "height": "height"
+            }
+        }
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "mappingEntity": {
+        "IfcBuildingStorey": {
+            "userKey": "Storey",
+            "userArgs": {
+                "name": "name",
+                "height": "height"
+            }
+        },
+        "IfcColumn": {
+            "userKey": "Column",
+            "userArgs": {
+                "coordinate": "coordinate",
+                "height": "height",
+                "rotation": "rotation",
+                "targetStorey": "targetStorey"
+            }
+        },
+        "IfcBeam": {
+            "userKey": "Beam",
+            "userArgs": {
+                "startPt": "startPt",
+                "endPt": "endPt",
+                "height": "height",
+                "targetStorey": "targetStorey"
+            }
+        }
+    }
+}

@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('electronSystemAPI', {
 
 contextBridge.exposeInMainWorld('electronFileIOAPI', {
     setIfcPath: () => ipcRenderer.invoke('set-ifc-path'),
-    loadMappingTable: () => ipcRenderer.invoke('load-mapping-table')
+    setMappingTable: () => ipcRenderer.invoke('load-mapping-table'),
+    setTargetFilePath: () => ipcRenderer.invoke('set-target-file')
 });
