@@ -10,6 +10,10 @@ export const ConverterPage:React.FC = () => {
         await window.electronIPCIfcConverter.sendMessageToIfcConverter(message);
     }
 
+    const ipcMappingTest = () => {
+        window.electronIPCIfcConverter.mappingTest();
+    }
+
     const {
         pathMappingTable,
         pathTargetFile,
@@ -36,11 +40,14 @@ export const ConverterPage:React.FC = () => {
             <div className="flex">
                 <button className="border w-full rounded-md" onClick={ipcPythonTest}>변환하기</button>
             </div>
-            <div className="flex flex-grow h-[224px]">
+            <div className="flex">
+                <button className="border w-full rounded-md" onClick={ipcMappingTest}>매핑테스트</button>
+            </div>
+            <div className="flex flex-grow h-[200px]">
                 <LogBox />
             </div>
             <div>
-                <ProgressBar value={50} />
+                <ProgressBar value={0} />
             </div>
         </div>
     )

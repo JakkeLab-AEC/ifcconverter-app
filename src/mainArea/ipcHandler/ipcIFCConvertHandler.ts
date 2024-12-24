@@ -1,12 +1,5 @@
 import { IpcMain } from "electron";
 import { AppController } from "../appController/appController";
-import path from 'path';
-import os from 'os';
-
-function getDesktopPath(): string {
-    // 사용자 홈 디렉토리와 Desktop 디렉토리를 결합하여 경로 반환
-    return path.join(os.homedir(), 'Desktop');
-}
 
 export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
     ipcMain.handle('ifc-create', async (_, message: string) => {
@@ -57,5 +50,18 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
                 return;
             }
         })();
+    });
+
+    ipcMain.handle('ifc-mapping-test', async (_) => {
+        const writer = AppController.getInstance().getDataStore().getMappingWriter();
+        const reader = AppController.getInstance().getDataStore().getMappingTableReader();
+        const datas = AppController.getInstance().getDataStore().getTargetFileData() as Array<Object>;
+        for(const data of datas) {
+            const jobResult = writer.createMappedItem(data, reader);
+            console.log(jobResult);
+        }
+
+        console.log(writer.getMappedItem());
+        console.log(writer.getUnmappedItem());
     });
 }

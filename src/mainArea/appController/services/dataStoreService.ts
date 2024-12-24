@@ -1,3 +1,4 @@
+import { MappingWriter } from "../../models/mappingTable/mappingWriter";
 import { MappingTableReader } from "../../models/mappingTable/mappingTableReader";
 
 export class DataStoreService {    
@@ -6,6 +7,7 @@ export class DataStoreService {
         this.targetFilePath = null;
         this.mappingTablePath = null;
         this.mappingTableReader = new MappingTableReader();
+        this.mappingWriter = new MappingWriter();
         this.targetFileData = {};
     }
 
@@ -13,6 +15,7 @@ export class DataStoreService {
     private targetFilePath: string|null;
     private ifcPath: string|null;
     private mappingTableReader: MappingTableReader;
+    private mappingWriter: MappingWriter;
     private targetFileData: Object;
 
     getIfcPath(): string|null {
@@ -53,5 +56,13 @@ export class DataStoreService {
 
     setTargetFileData(data: Object) {
         this.targetFileData = data;
+    }
+
+    resetMappingWriter() {
+        this.mappingWriter = new MappingWriter();
+    }
+
+    getMappingWriter(): MappingWriter {
+        return this.mappingWriter;
     }
 }

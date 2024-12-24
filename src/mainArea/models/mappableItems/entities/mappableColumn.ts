@@ -2,9 +2,19 @@ import { MappableItem } from "../mappableItem";
 
 export class MappableIfcColumn extends MappableItem {
     constructor(data: any) {
-        super(data);
-        this.requiredParams = new Set(["coordinate", "height", "rotation", "targetStorey"]);
+        super(data, new Set(["coordinate", "height", "rotation", "targetStorey"]));
+        if(this.isValid) {
+            this.coordinate = data.userArgs.coordinate;
+            this.height = data.userArgs.height;
+            this.rotation = data.userArgs.rotation;
+            this.targetStorey = data.userArgs.targetStorey;
+        }
     }
+    
+    protected coordinate: Array<number> | undefined;
+    protected height: number | undefined;
+    protected rotation: number | undefined;
+    protected targetStorey: string | undefined;
 
     protected validateTypes(data: any): boolean {
         return (
@@ -13,5 +23,5 @@ export class MappableIfcColumn extends MappableItem {
             typeof data.rotation === "number" &&
             typeof data.targetStorey === "string"
         );
-    }
+    }    
 }

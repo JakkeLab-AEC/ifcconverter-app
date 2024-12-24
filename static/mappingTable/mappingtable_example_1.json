@@ -3,8 +3,8 @@
         "IfcBuildingStorey": {
             "userKey": "Storey",
             "userArgs": {
-                "name": "name",
-                "height": "height"
+                "name": "floorName",
+                "height": "floorHeight"
             }
         },
         "IfcColumn": {

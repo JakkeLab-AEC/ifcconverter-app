@@ -17,59 +17,72 @@ export class MappingWriter {
     createMappedItem (item: any, mappingTableReader: MappingTableReader):{result: boolean, message?: string} {
         const mappingRule = mappingTableReader.getMappingRuleByUserKey(item.userKey);
         if(!mappingRule) {
-            this.unmappedItem.push(item);
+            this.unmappedItem.push({ entity: item, reason: "Can't find matching rule." });
             return {result: false, message: "Can't find matching rule."};
         }
     
-        const keysFromItem = Object.keys(item)
+        const keysFromItem = Object.keys(item.userArgs)
         const keysFromMappingRule = Object.values(mappingRule.userArgs)
-    
-        const allKeysIncluded = keysFromMappingRule.every(key => keysFromItem.includes(key));
-        if(!allKeysIncluded) {
-            this.unmappedItem.push(item);
-            return {result: false, message: "Some requied keys are not included."};
+
+        const allKeysIncluded = keysFromMappingRule.every((key) => keysFromItem.includes(key));
+        if (!allKeysIncluded) {
+            this.unmappedItem.push({ entity: item, reason: "Some required keys are not included." });
+            return { result: false, message: "Some required keys are not included." };
+        }
+
+        const transformedArgs: any = {};
+        for (const [internalKey, userKey] of Object.entries(mappingRule.userArgs)) {
+            if (item.userArgs[userKey] !== undefined) {
+                transformedArgs[internalKey] = item.userArgs[userKey];
+            }
         }
         
-        switch(mappingTableReader.getMappableIfcClass(item.userKey)) {
+        switch (mappingTableReader.getMappableIfcClass(item.userKey)) {
             case MappableIfcClasses.IfcBuildingStorey: {
-                const entity = new MappableIfcBuildingStorey(item);
-                if(entity.isValid) {
+                const entity = new MappableIfcBuildingStorey({ userKey: item.userKey, userArgs: transformedArgs });
+                if (entity.isValid) {
                     this.mappedItem.push(entity);
-                    return {result: true}
+                    return { result: true };
                 } else {
-                    const unmappedItemWrapping = {entity: item, reason: "Type validation failed."}
-                    this.unmappedItem.push(unmappedItemWrapping);
-                    return {result: false, message: "Type validation failed."}
+                    this.unmappedItem.push({ entity: item, reason: "Type validation failed." });
+                    return { result: false, message: "Type validation failed." };
                 }
             }
-            
+    
             case MappableIfcClasses.IfcColumn: {
-                const entity = new MappableIfcColumn(item);
-                if(entity.isValid) {
+                const entity = new MappableIfcColumn({ userKey: item.userKey, userArgs: transformedArgs });
+                if (entity.isValid) {
                     this.mappedItem.push(entity);
-                    return {result: true}
+                    return { result: true };
                 } else {
-                    const unmappedItemWrapping = {entity: item, reason: "Type validation failed."}
-                    this.unmappedItem.push(unmappedItemWrapping);
-                    return {result: false, message: "Type validation failed."}
+                    this.unmappedItem.push({ entity: item, reason: "Type validation failed." });
+                    return { result: false, message: "Type validation failed." };
                 }
             }
-
+    
             case MappableIfcClasses.IfcBeam: {
-                const entity = new MappableIfcBeam(item);
-                if(entity.isValid) {
+                const entity = new MappableIfcBeam({ userKey: item.userKey, userArgs: transformedArgs });
+                if (entity.isValid) {
                     this.mappedItem.push(entity);
-                    return {result: true}
+                    return { result: true };
                 } else {
-                    const unmappedItemWrapping = {entity: item, reason: "Type validation failed."}
-                    this.unmappedItem.push(unmappedItemWrapping);
-                    return {result: false, message: "Type validation failed."}
+                    this.unmappedItem.push({ entity: item, reason: "Type validation failed." });
+                    return { result: false, message: "Type validation failed." };
                 }
             }
-
+    
             default: {
-                return {result: false, message: "Unsupported Item."}
+                this.unmappedItem.push({ entity: item, reason: "Unsupported Item." });
+                return { result: false, message: "Unsupported Item." };
             }
         }
+    }
+
+    getMappedItem():Array<MappableItem> {
+        return this.mappedItem;
+    }
+
+    getUnmappedItem():Array<{entity: any, reason: string}> {
+        return this.unmappedItem;
     }
 }

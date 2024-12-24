@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld('electronIPCIfcConverter', {
     sendMessageToIfcConverter: (message: string) => ipcRenderer.invoke('ifc-create', message),
+    mappingTest: () => ipcRenderer.invoke('ifc-mapping-test')
 });
 
 contextBridge.exposeInMainWorld('electronWindowControlAPI', {

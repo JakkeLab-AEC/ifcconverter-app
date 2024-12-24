@@ -1,19 +1,19 @@
 [{
     "userKey": "Storey",
     "userArgs": {
-        "name": "1F",
-        "height": 0.0
+        "floorName": "1F",
+        "floorHeight": 0.0
     }
 },{
     "userKey": "Storey",
     "userArgs": {
-        "name": "2F",
-        "height": 3.0
+        "floorName": "2F",
+        "floorHeight": 3.0
     }
 },{
     "userKey": "Storey",
     "userArgs": {
-        "name": "3F",
-        "height": 6.0
+        "floorName": "3F",
+        "floorHeight": 6.0
     }
 }]
