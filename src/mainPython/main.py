@@ -25,17 +25,17 @@ def handle_message(message) -> dict:
     """
     try:
         request = json.loads(message)
-        action = request.get('action')
+        action = request.get('header').get('action')
 
-        if action== "pythonTest":
+        if action == "pythonTest":
             return {"status":"success","message":f"Hello, {request.get('name', 'Guest')}!"}
 
         elif action == "create_ifc":
-            json_data = request.get("data", {})
-            output_file = request.get("output_file", "output.ifc")
+            entities = request.get("entities")
+            output_file = request.get("header").get("ifcFilePath")
 
             try:
-                file_path = create_ifc_from_json(json_data, output_file)
+                file_path = create_ifc_from_json(entities, output_file)
                 return {"response_type": "ifc_create", "status": "success", "message": "IFC file created", "file": file_path}
             except Exception as e:
                 return {"response_type": "ifc_create", "status": "error", "message": str(e)}
@@ -55,26 +55,30 @@ def handle_message(message) -> dict:
     except json.JSONDecodeError:
         return {"response_type": "invalid_message", "status": "error", "message": "Invalid JSON format"}
 
-def create_ifc_from_json(json_data, output_file):
+def create_ifc_from_json(entities, output_file):
     """
     Generates an IFC file based on the provided JSON data.
-
-    :param json_data: A dictionary containing the data required to construct the IFC file.
-                      The structure and required keys depend on the application's implementation.
-                      Example: {"storeys": {"1F": 0.0, "2F": 3.0, "3F": 6.0}}
-    :param output_file: The file path where the IFC file will be saved.
-                        Example: "output.ifc"
-    :return: The path to the saved IFC file.
-
-    This method is the main function intended for production use. It takes dynamic `json_data`
-    input and uses it to construct an IFC file. The actual implementation for processing `json_data`
-    needs to be written in this function.
-
-    Note: This function currently acts as a placeholder and requires codes for parsing and handling
-    `json_data` to generate the appropriate IFC structure.
     """
 
-    writer = IfcWriter()
+    writer = IfcWriter("IFC2x3")
+    for entity in entities:
+        ifc_class = entity['ifcClass']
+        if ifc_class == 'IfcBuildingStorey':
+            writer.ifcCoreDataUtil.create_storey(
+                name=entity['name'],
+                elevation=float(entity['height'])
+            )
+        elif ifc_class == 'IfcColumn':
+            coordinate = (float(entity['coordinate'][0]), float(entity['coordinate'][1]))
+            writer.ifcSharedElementDataUtil.create_column(
+                profile_name="H300x300",
+                col_type_name="COL-H300x300",
+                target_storey_name=entity['targetStorey'],
+                height=float(entity['height']),
+                rotation_degree=float(entity['rotation']),
+                coordinate=coordinate,
+                profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+            )
 
     # Codes will be written here to process `json_data` dynamically
     writer.save(output_file)
@@ -172,6 +176,16 @@ def create_ifc_test(output_file):
     #     target_objects=[writer.element_types["beam_types"]["BEAM_I_300x300"]["Entity"]]
     # )
 
+    writer.ifcSharedElementDataUtil.create_column(
+        profile_name="PROF_I_300x300",
+        col_type_name="COL_I_300x300",
+        target_storey_name="1F",
+        coordinate=(0., 0.),
+        height=4.,
+        rotation_degree=30.,
+        profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+    )
+
     writer.ifcSharedElementDataUtil.test_extrusion()
 
     writer.save(output_file)
@@ -183,13 +197,13 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         # Test mode: Run the script with a predefined JSON input
         print("Running in test mode...")
-        test_input = {
+        test_input = {"header" : {
             "action": "create_ifc_test",
             "output_file": f"{sys.argv[2]}/test_type2.ifc",
             "json_file": f"{sys.argv[2]}/test_output.json"
-        }
+        }}
         response = handle_message(json.dumps(test_input))
-        create_ifc_test(test_input['output_file'])
+        create_ifc_test(test_input["header"]['output_file'])
         print(json.dumps(response, indent=4))  # Pretty-print the response
     else:
         # Default behavior: Continuous message loop

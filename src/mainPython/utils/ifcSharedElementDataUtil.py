@@ -16,9 +16,9 @@ class IfcSharedElementDataUtil:
         col_type_name: str,
         target_storey_name: str,
         coordinate: tuple[float, float],
-        base_offset: float,
-        height: float,
-        rotation_degree: float,
+        height: float = 2,
+        rotation_degree: float = 0,
+        base_offset: float = 0,
         profile_arg: dict[str, float] | None = None
     ) -> entity_instance:
 
@@ -44,10 +44,7 @@ class IfcSharedElementDataUtil:
             context_type="Model",
         )
 
-        sub_context = self.writer.ifcResourceEntityUtil.create_geometric_representation_sub_context(
-            parent_context=context,
-            context_identifier="Body"
-        )
+        sub_context = self.writer.sub_context_body
 
         extrusion_solid = self.writer.ifcResourceEntityUtil.create_extruded_area_solid(
             swept_area=profile,

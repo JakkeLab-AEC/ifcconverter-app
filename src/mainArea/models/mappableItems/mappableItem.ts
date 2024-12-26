@@ -17,4 +17,6 @@ export abstract class MappableItem {
         
         return this.validateTypes(data.userArgs);
     }
+
+    abstract export(): Object;
 }

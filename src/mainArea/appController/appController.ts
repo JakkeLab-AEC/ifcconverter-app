@@ -1,5 +1,4 @@
-import { PythonProcessHandler } from "../pythonWebsocket/pythonProcessHandler";
-import { PythonWebsocket } from "../pythonWebsocket/pywsClient";
+import { PythonProcessHandler } from "../processHandler/pythonProcessHandler";
 import path from 'path';
 import { DataStoreService } from "./services/dataStoreService";
 

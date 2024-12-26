@@ -4,7 +4,10 @@ import { AppController } from "../appController/appController";
 export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
     ipcMain.handle('ifc-create', async (_, message: string) => {
         const handler = AppController.getInstance().getPythonProcessHandler();
-        
+
+        const { mappedItems, unmappedItems } = AppController.getInstance().getDataStore().getMappingWriter().dispatchData();
+        const entities = AppController.getInstance().getDataStore().getMappingWriter().exportAsJSON();
+
         (async () => {
             try {
                 // Python 프로세스 시작
@@ -20,13 +23,11 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
                 const jsonData = {
                     "header": {
                         "action": "create_ifc",
-                        "project_name": "My Building Project",
-                        "site_name": "my_site",
+                        "projectName": "My Building Project",
+                        "siteName": "my_site",
+                        "ifcFilePath": outputFile
                     },
-                    "entities": {
-                        "elements": [],
-                        "output_file": outputFile
-                    },
+                    "entities": mappedItems
                 };
                 
                 const response = await handler.sendMessage(jsonData);
@@ -63,5 +64,8 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
 
         console.log(writer.getMappedItem());
         console.log(writer.getUnmappedItem());
+        console.log(writer.exportAsJSON());
+
+        AppController.getInstance().getDataStore().resetMappingWriter();
     });
 }

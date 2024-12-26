@@ -16,4 +16,54 @@
         "floorName": "3F",
         "floorHeight": 6.0
     }
+},{
+    "userKey": "Column",
+    "userArgs": {
+        "targetStorey": "1F",
+        "rotation": 30,
+        "height": 3,
+        "coordinate": [0, 0]
+    }
+},{
+    "userKey": "Column",
+    "userArgs": {
+        "targetStorey": "1F",
+        "rotation": 45,
+        "height": 4,
+        "coordinate": [3, 3]
+    }
+},{
+    "userKey": "Column",
+    "userArgs": {
+        "targetStorey": "1F",
+        "rotation": 60,
+        "height": 2,
+        "coordinate": [3, 0]
+    }
+},{
+    "userKey": "Column",
+    "userArgs": {
+        "targetStorey": "1F",
+        "rotation": 0,
+        "height": 5,
+        "coordinate": [0, 3]
+    }
+},{
+    "userKey": "Beam",
+    "userArgs": {
+        "startPt": [0, 0],
+        "endPt": [4, 3],
+        "rotation": 30,
+        "height": 5,
+        "targetStorey": "1F"
+    }
+},{
+    "userKey": "Beam",
+    "userArgs": {
+        "startPt": [1, 1],
+        "endPt": [1, 5],
+        "rotation": 30,
+        "height": 5,
+        "targetStorey": "1F"
+    }
 }]

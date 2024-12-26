@@ -1,3 +1,4 @@
+import { MappableIfcClasses } from "../../mappingTable/mappingTableDefinition";
 import { MappableItem } from "../mappableItem";
 
 export class MappableIfcBuildingStorey extends MappableItem {
@@ -19,5 +20,13 @@ export class MappableIfcBuildingStorey extends MappableItem {
             typeof data.name === "string" && 
             typeof data.height === "number"
         );
+    }
+
+    export(): Object {
+        return {
+            ifcClass: MappableIfcClasses.IfcBuildingStorey,
+            name: this.name,
+            height: this.height
+        }
     }
 }

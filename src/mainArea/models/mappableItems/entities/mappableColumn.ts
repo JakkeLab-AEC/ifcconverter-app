@@ -1,3 +1,4 @@
+import { MappableIfcClasses } from "../../mappingTable/mappingTableDefinition";
 import { MappableItem } from "../mappableItem";
 
 export class MappableIfcColumn extends MappableItem {
@@ -23,5 +24,15 @@ export class MappableIfcColumn extends MappableItem {
             typeof data.rotation === "number" &&
             typeof data.targetStorey === "string"
         );
-    }    
+    }
+
+    export(): Object {
+        return {
+            ifcClass: MappableIfcClasses.IfcColumn,
+            coordinate: this.coordinate,
+            height: this.height,
+            rotation: this.rotation,
+            targetStorey: this.targetStorey
+        }
+    }
 }

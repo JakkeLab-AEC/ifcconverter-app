@@ -22,7 +22,8 @@
                 "startPt": "startPt",
                 "endPt": "endPt",
                 "height": "height",
-                "targetStorey": "targetStorey"
+                "targetStorey": "targetStorey",
+                "rotation": "rotation"
             }
         }
     }

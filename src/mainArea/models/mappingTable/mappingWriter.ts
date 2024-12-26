@@ -1,3 +1,4 @@
+import { AppController } from "../../../mainArea/appController/appController";
 import { MappableIfcColumn } from "../mappableItems/entities/mappableColumn";
 import { MappableIfcBeam } from "../mappableItems/entities/mappableIfcBeam";
 import { MappableIfcBuildingStorey } from "../mappableItems/entities/mappableIfcBuildingStorey";
@@ -84,5 +85,30 @@ export class MappingWriter {
 
     getUnmappedItem():Array<{entity: any, reason: string}> {
         return this.unmappedItem;
+    }
+
+    exportAsJSON():Array<Object> {
+        return this.mappedItem.map(item => item.export());
+    }
+
+    dispatchData(): {mappedItems: any, unmappedItems: any} {
+        this.mappedItem = [];
+        this.unmappedItem = [];
+        const writer = AppController.getInstance().getDataStore().getMappingWriter();
+        const reader = AppController.getInstance().getDataStore().getMappingTableReader();
+        const datas = AppController.getInstance().getDataStore().getTargetFileData() as Array<Object>;
+
+        for(const data of datas) {
+            writer.createMappedItem(data, reader);
+        }
+
+        const result = {
+            mappedItems: writer.exportAsJSON(),
+            unmappedItems: [...writer.unmappedItem]
+        }
+
+        AppController.getInstance().getDataStore().resetMappingWriter();
+
+        return result;
     }
 }
