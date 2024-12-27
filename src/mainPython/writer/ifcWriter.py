@@ -174,9 +174,9 @@ class IfcWriter:
         self.schema = schema
 
         # Import utils
-        from utils.ifcResourceEntityUtils import IfcResourceEntityUtil
-        from utils.ifcCoreDataUtils import IfcCoreDataUtil
-        from utils.ifcSharedElementDataUtil import IfcSharedElementDataUtil
+        from .utils.ifcResourceEntityUtils import IfcResourceEntityUtil
+        from .utils.ifcCoreDataUtils import IfcCoreDataUtil
+        from .utils.ifcSharedElementDataUtil import IfcSharedElementDataUtil
 
         ifcResourceEntityUtil = IfcResourceEntityUtil(self)
         self.ifcResourceEntityUtil = ifcResourceEntityUtil

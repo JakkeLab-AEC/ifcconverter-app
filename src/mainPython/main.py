@@ -7,7 +7,7 @@ current_file_path = os.path.abspath(__file__)
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file_path)))
 sys.path.append(project_root)
 
-from ifcWriter import IfcWriter
+from writer import IfcWriter
 
 def handle_message(message) -> dict:
     """
@@ -221,3 +221,4 @@ if __name__ == "__main__":
     else:
         # Default behavior: Continuous message loop
         message_loop()
+
