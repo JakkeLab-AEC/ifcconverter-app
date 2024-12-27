@@ -16,9 +16,9 @@ class IfcSharedElementDataUtil:
         col_type_name: str,
         target_storey_name: str,
         coordinate: tuple[float, float],
-        height: float = 2,
-        rotation_degree: float = 0,
-        base_offset: float = 0,
+        height: float = 2.,
+        rotation_degree: float = 0.,
+        base_offset: float = 0.,
         profile_arg: dict[str, float] | None = None
     ) -> entity_instance:
 
@@ -142,8 +142,8 @@ class IfcSharedElementDataUtil:
         target_storey_name: str,
         pt_start: tuple[float, float],
         pt_end: tuple[float, float],
-        rotation_degree: float,
-        z_offset: float,
+        rotation_degree: float = 0.,
+        z_offset: float = 0.,
         profile_arg: dict[str, float]|None = None
     ) -> entity_instance:
         if profile_name in self.writer.profiles.keys():

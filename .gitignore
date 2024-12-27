@@ -230,8 +230,8 @@ $RECYCLE.BIN/
 # electron-forge build folder
 /out
 
-# Anaconda env
-./src/anacondad_env
+# Envs
+/envs
 
 # Pycharm
 .idea/

@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve, dirname } from 'path';
 import { builtinModules } from 'module';
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import copyFilesPlugin from "./viteplugin";
 
 export default defineConfig({
@@ -22,11 +21,6 @@ export default defineConfig({
         entryFileNames: '[name].js',
         format: 'cjs',
       },
-      plugins: [copyFilesPlugin({
-        src: '/src/anaconda_env',
-        dest: '/dist/mainArea',
-        watch: true
-      })]
     },
   },
   server: {
@@ -37,4 +31,13 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
+  plugins: [copyFilesPlugin({
+    src: 'src/mainPython',
+    dest: 'dist/mainPython',
+    watch: true
+  }), copyFilesPlugin({
+    src: 'envs/anaconda_env',
+    dest: 'dist/anaconda_env',
+    watch: true
+  })]
 });

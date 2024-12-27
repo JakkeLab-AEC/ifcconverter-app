@@ -79,6 +79,19 @@ def create_ifc_from_json(entities, output_file):
                 coordinate=coordinate,
                 profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
             )
+        elif ifc_class == 'IfcBeam':
+            pt_start = (float(entity['startPt'][0]), float(entity['startPt'][1]))
+            pt_end = (float(entity['endPt'][0]), float(entity['endPt'][1]))
+            writer.ifcSharedElementDataUtil.create_beam(
+                profile_name="H300x300",
+                beam_type_name="BEAM-H300x300",
+                target_storey_name=entity['targetStorey'],
+                pt_start=pt_start,
+                pt_end=pt_end,
+                rotation_degree=float(entity['rotation']),
+                z_offset=float(entity['height']),
+                profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+            )
 
     # Codes will be written here to process `json_data` dynamically
     writer.save(output_file)
