@@ -3,26 +3,32 @@ import { SetPath } from "../../components/packagedComponents/setPath"
 import { LogBox } from "../../components/logbox/logbox"
 import { ProgressBar } from "../../components/progressbar/progressbar"
 import { useConverterPageStore } from "./converterPageStore"
+import { getCurrentTimestamp } from "../../../commonUtils/timeStamper"
 
 export const ConverterPage:React.FC = () => {
-    const ipcPythonTest = async () => {
-        const message = "Test From Electron";
+    const {
+        pathMappingTable,
+        pathTargetFile,
+        pathIfcFile,
+        currentProgress,
+        logs,
+        setMappingTable,
+        setTargetFile,
+        setIfcFile,
+        pushLog,
+        flushLogs,
+    } = useConverterPageStore();
+
+    const runConvert = async () => {
+        flushLogs();
+        const message = "Run Convert";
+        pushLog(`[${getCurrentTimestamp()}] Initialize.`)
         await window.electronIPCIfcConverter.sendMessageToIfcConverter(message);
     }
 
     const ipcMappingTest = () => {
         window.electronIPCIfcConverter.mappingTest();
     }
-
-    const {
-        pathMappingTable,
-        pathTargetFile,
-        pathIfcFile,
-        currentProgress,
-        setMappingTable,
-        setTargetFile,
-        setIfcFile,
-    } = useConverterPageStore();
 
     return (
         <div className="flex flex-col p-4 gap-2 h-full">
@@ -39,12 +45,12 @@ export const ConverterPage:React.FC = () => {
             <SetPath label="저장 경로" path={pathIfcFile} onClickLoadPath={setIfcFile}/>
             <hr />
             <div className="flex">
-                <button className="border w-full rounded-md" onClick={ipcPythonTest}>변환하기</button>
+                <button className="border w-full rounded-md" onClick={runConvert}>변환하기</button>
             </div>
             {/* <div className="flex">
                 <button className="border w-full rounded-md" onClick={ipcMappingTest}>매핑테스트</button>
             </div> */}
-            <div className="flex flex-grow h-[200px]">
+            <div className="flex flex-grow h-[360px]">
                 <LogBox />
             </div>
             <div>

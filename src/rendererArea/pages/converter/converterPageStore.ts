@@ -5,10 +5,13 @@ interface ConverterPageProps {
     pathTargetFile: string,
     pathIfcFile: string,
     currentProgress: number,
+    logs: string[],
     setMappingTable:() => Promise<void>,
     setTargetFile:() => Promise<void>,
     setIfcFile:() => Promise<void>,
     setCurrentProgress:(progress: number) => void,
+    pushLog: (log: string) => void,
+    flushLogs: () => void,
 }
 
 export const useConverterPageStore = create<ConverterPageProps>((set, get) => ({
@@ -16,6 +19,7 @@ export const useConverterPageStore = create<ConverterPageProps>((set, get) => ({
     pathTargetFile: "",
     pathIfcFile: "",
     currentProgress: 0,
+    logs: [],
     setMappingTable: async () => {
         const jobResult = await window.electronFileIOAPI.setMappingTable();
         if(jobResult.result) {
@@ -56,5 +60,21 @@ export const useConverterPageStore = create<ConverterPageProps>((set, get) => ({
                 currentProgress: progress
             }
         });
+    },
+    pushLog: (log: string) => {
+        const updatedLogs = [...get().logs];
+        updatedLogs.push(log);
+        set(() => {
+            return {
+                logs: updatedLogs
+            }
+        })
+    },
+    flushLogs: () => {
+        set(() => {
+            return {
+                logs: []
+            }
+        })
     }
 }));

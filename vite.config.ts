@@ -3,6 +3,9 @@ import { resolve, dirname } from 'path';
 import { builtinModules } from 'module';
 import copyFilesPlugin from "./viteplugin";
 
+const isWindows = process.platform === 'win32';
+const anacondaEnvSrc = isWindows ? 'envs/conda_env_win' : 'envs/conda_env_mac';
+
 export default defineConfig({
   base: './',
   build: {
@@ -36,8 +39,8 @@ export default defineConfig({
     dest: 'dist/mainPython',
     watch: true
   }), copyFilesPlugin({
-    src: 'envs/anaconda_env',
-    dest: 'dist/anaconda_env',
+    src: anacondaEnvSrc,
+    dest: 'dist/conda_env',
     watch: true
   })]
 });

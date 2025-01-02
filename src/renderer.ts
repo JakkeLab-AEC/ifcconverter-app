@@ -8,6 +8,6 @@ window.electronSystemAPI.receiveOSInfo((callback) => {
 });
 
 window.electronIfcCreationAPI.receiveConvertProgress((callback) => {
-    console.log(callback.currentStep*100/callback.totalSteps);
     useConverterPageStore.getState().setCurrentProgress(callback.currentStep*100/callback.totalSteps)
+    useConverterPageStore.getState().pushLog(callback.message);
 });

@@ -8,14 +8,8 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
 
         const { mappedItems, unmappedItems } = AppController.getInstance().getDataStore().getMappingWriter().dispatchData();
         const countListner = (count: number, message: string) => {
-            console.log({
-                totalSteps: mappedItems.length,
-                currentStep: count,
-                message: message
-            });
-
             IfcCreationMessageSender({
-                totalSteps: mappedItems.length + 2,
+                totalSteps: mappedItems.length + 1,
                 currentStep: count,
                 message: message
             });
@@ -43,7 +37,7 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
                     "entities": mappedItems
                 };
                 
-                const response = await handler.sendMessage(jsonData, countListner);
+                await handler.sendMessage(jsonData, countListner);
             } catch (error) {
                 console.error('Error during Python IPC communication:', error);
             } finally {
@@ -60,12 +54,7 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
         const datas = AppController.getInstance().getDataStore().getTargetFileData() as Array<Object>;
         for(const data of datas) {
             const jobResult = writer.createMappedItem(data, reader);
-            console.log(jobResult);
         }
-
-        console.log(writer.getMappedItem());
-        console.log(writer.getUnmappedItem());
-        console.log(writer.exportAsJSON());
 
         AppController.getInstance().getDataStore().resetMappingWriter();
     });

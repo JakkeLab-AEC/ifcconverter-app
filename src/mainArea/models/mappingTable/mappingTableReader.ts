@@ -11,7 +11,6 @@ export class MappingTableReader {
             const parsedData: MappingTableDefinition = JSON.parse(data);
             const validationResult = this.validate(parsedData);
 
-            console.log(`Validation : ${validationResult}`);
             if (validationResult) {
                 this.storeMappingRules(parsedData);
             }

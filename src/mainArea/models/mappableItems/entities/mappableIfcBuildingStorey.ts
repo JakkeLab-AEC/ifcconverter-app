@@ -5,8 +5,6 @@ export class MappableIfcBuildingStorey extends MappableItem {
     constructor(data: any) {
         super(data, new Set(["name", "height"]));
         if(this.isValid) {
-            console.log("---DATA---");
-            console.log(data);
             this.height = data.userArgs.height;
             this.name = data.userArgs.name;
         }

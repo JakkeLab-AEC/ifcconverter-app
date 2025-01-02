@@ -1,15 +1,14 @@
 import React, { useState } from "react"
+import { useConverterPageStore } from "../../pages/converter/converterPageStore";
 
-type Log ={
-    logId: string,
-    log: string,
-    time: Date,
-}
 
 export const LogBox:React.FC = () => {
-    const [logs, setLogs] = useState<Log[]>([]);
+    const {
+        logs
+    } = useConverterPageStore();
+
     return (
-        <textarea className="w-full h-full border resize-none" value={logs.map((log) => `${log.time.toISOString()} ${log.log}`).join('\n')} readOnly={true}>
+        <textarea className="w-full h-full border resize-none" value={logs.join("\n")} readOnly={true}>
         </textarea>
     )
 }

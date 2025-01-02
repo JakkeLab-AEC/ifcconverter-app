@@ -37,7 +37,6 @@ export const loadTargetFileWithDialog = async () => {
         const fileContent = await fs.promises.readFile(dialogResult.filePaths[0], 'utf-8');
         try {
             const parsedData = JSON.parse(fileContent);
-            console.log(parsedData);
             AppController.getInstance().getDataStore().setTargetFilePath(dialogResult.filePaths[0]);
             AppController.getInstance().getDataStore().setTargetFileData(parsedData);
 

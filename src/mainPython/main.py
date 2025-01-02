@@ -37,9 +37,8 @@ def handle_message(message) -> dict:
 
             try:
                 file_path = create_ifc_from_json(entities, output_file)
-                return {"response_type": "ifc_create", "status": "success", "message": "IFC file created", "file": file_path}
             except Exception as e:
-                return {"response_type": "ifc_create", "status": "error", "message": str(e)}
+                print_response(action="system", result=False, message=str(e))
 
         elif action == "create_ifc_test":
             output_file = request.get("output_file", "output.ifc")
@@ -105,6 +104,7 @@ def create_ifc_from_json(entities, output_file):
 
     # Codes will be written here to process `json_data` dynamically
     writer.save(output_file)
+    
     print_response(action="writingFile", result=True)
     sys.stdout.flush()
     return output_file
@@ -121,9 +121,6 @@ def message_loop():
 
         # Process the incoming message
         response = handle_message(line.strip())
-
-        # Output the response as JSON
-        print_response(action="system", message=response, result=True)
 
 def create_ifc_test(output_file):
     """

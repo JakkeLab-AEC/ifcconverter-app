@@ -6,6 +6,7 @@ import { AppController } from './mainArea/appController/appController';
 import { UIController } from './mainArea/appController/controllers/uicontroller';
 import { setIpcWindowControl } from './mainArea/ipcHandler/ipcWindowControl';
 import { setIPCFileIOHandler } from './mainArea/ipcHandler/ipcFileIOHandler';
+import './mainArea/extensions/jsonTryParse';
 
 if (require('electron-squirrel-startup')) app.quit();
 
@@ -15,9 +16,9 @@ const createWindow = () => {
   console.log(path.join(__dirname, 'preload.js'));
   mainWindow = new BrowserWindow({
     width: 480,
-    height: 600,
+    height: 720,
     title: 'Commonland Desktop',
-    titleBarStyle: os.platform() == 'win32'? 'hidden' : 'hiddenInset',
+    titleBarStyle: os.platform() === 'win32'? 'hidden' : 'hiddenInset',
     resizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -86,15 +87,16 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
-  AppController.InitiateAppController();
+  const osInfo = os.platform();
+  if(osInfo === 'win32' || osInfo === 'darwin') {
+    const osCode = osInfo === 'win32' ? 'win' : 'mac';
+    AppController.InitiateAppController(osCode);
+    createWindow();
 
-  createWindow();
-
-  setIPCElectronIFCHandler(ipcMain);
-
-  setIpcWindowControl(ipcMain);
-
-  setIPCFileIOHandler(ipcMain);
+    setIPCElectronIFCHandler(ipcMain);
+    setIpcWindowControl(ipcMain);
+    setIPCFileIOHandler(ipcMain);
+  }
 });
 
 app.on('window-all-closed', () => {

@@ -1,3 +1,5 @@
+import { getCurrentTimestamp } from '../../commonUtils/timeStamper';
+import { AppController } from '../appController/appController';
 import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import path from 'path';
 
@@ -16,7 +18,13 @@ export class PythonProcessHandler {
         }
         
         // Python 실행 파일 경로
-        const pythonExecutable = path.resolve(__dirname, '../../anaconda_env/python.exe');
+        let embeddedPythonPath = "";
+        if(AppController.getInstance().osInfo == "win") {
+            embeddedPythonPath = "python.exe";
+        } else {
+            embeddedPythonPath = "bin/python"
+        }
+        const pythonExecutable = path.resolve(__dirname, `../../conda_env/${embeddedPythonPath}`);
         console.log('Python Executable Path:', pythonExecutable);
         console.log('Python Script Path:', this.scriptPath);
 
@@ -76,13 +84,32 @@ export class PythonProcessHandler {
                     jsonBuffer.push(line);
                 }
                 
-                console.log(jsonBuffer);
+                const joinedBuffer = jsonBuffer.join('');
+                const parseJob = JSON.tryParse<Object>(joinedBuffer);
+                let parsedData;
+                if(parseJob.success && Object.keys(parseJob.data).includes("action") && Object.keys(parseJob.data).includes("result")) {
+                    parsedData = parseJob.data;
+                    count++;
+                }
+
                 jsonBuffer.length = 0;
                 buffer = '';
-                count++;
                 
-                if(countListner) {
-                    let message:string = "Test";
+                if(countListner && parseJob.success) {
+                    let message: string = "";
+                    const timestamp = getCurrentTimestamp();
+                    const writingResult = parsedData.result ? "done" : "failed";
+                    switch(parsedData.action) {
+                        case "writingEntity":
+                            message = `[${timestamp}] Writing ${parsedData.entityType} is ${writingResult}`;
+                            break;
+                        case "writingFile":
+                            message = `[${timestamp}] Writing IFC file is ${writingResult}`;
+                            break;
+                        default:
+                            return;
+                    }
+                    
                     countListner(count, message);
                 }                
             };
@@ -97,3 +124,4 @@ export class PythonProcessHandler {
         return this.pyProcess !== null;
     }
 }
+
