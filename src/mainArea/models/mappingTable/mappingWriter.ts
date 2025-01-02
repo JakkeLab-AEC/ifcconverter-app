@@ -91,7 +91,7 @@ export class MappingWriter {
         return this.mappedItem.map(item => item.export());
     }
 
-    dispatchData(): {mappedItems: any, unmappedItems: any} {
+    dispatchData(): {mappedItems: Array<any>, unmappedItems: Array<any>} {
         this.mappedItem = [];
         this.unmappedItem = [];
         const writer = AppController.getInstance().getDataStore().getMappingWriter();

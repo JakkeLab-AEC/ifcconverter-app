@@ -12,19 +12,6 @@ export const setIpcWindowControl = (ipcMain: IpcMain) => {
         }
     });
 
-    // ipcMain.handle('window-control-maximize', (_) => {
-    //     const mainWindow = UIController.instance.getWindow('main-window');
-    //     if (mainWindow) {
-    //         if (mainWindow.isMaximized()) {
-    //             mainWindow.unmaximize();
-    //         } else {
-    //             mainWindow.maximize();
-    //         }
-    //     } else {
-    //         console.error('Main window is undefined');
-    //     }
-    // });
-
     ipcMain.handle('window-control-quit', (_) => {
         const mainWindow = UIController.instance.getWindow('main-window');
         if (mainWindow) {

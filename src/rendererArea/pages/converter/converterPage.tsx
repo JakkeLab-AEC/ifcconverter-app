@@ -18,6 +18,7 @@ export const ConverterPage:React.FC = () => {
         pathMappingTable,
         pathTargetFile,
         pathIfcFile,
+        currentProgress,
         setMappingTable,
         setTargetFile,
         setIfcFile,
@@ -47,7 +48,7 @@ export const ConverterPage:React.FC = () => {
                 <LogBox />
             </div>
             <div>
-                <ProgressBar value={0} />
+                <ProgressBar value={currentProgress} />
             </div>
         </div>
     )

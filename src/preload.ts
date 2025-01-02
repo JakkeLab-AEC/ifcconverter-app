@@ -20,3 +20,7 @@ contextBridge.exposeInMainWorld('electronFileIOAPI', {
     setMappingTable: () => ipcRenderer.invoke('load-mapping-table'),
     setTargetFilePath: () => ipcRenderer.invoke('set-target-file')
 });
+
+contextBridge.exposeInMainWorld('electronIfcCreationAPI', {
+    receiveConvertProgress: (callback) => ipcRenderer.on('send-ifc-creation-status', (_event, args) => callback(args)),
+});

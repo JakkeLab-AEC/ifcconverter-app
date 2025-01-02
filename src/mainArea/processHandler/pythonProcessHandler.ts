@@ -25,14 +25,6 @@ export class PythonProcessHandler {
             this.pyProcess = spawn(pythonExecutable, [this.scriptPath], {
                 stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
             });
-
-            this.pyProcess.stdout.on('data', (data) => {
-                if(Object.keys(data).length > 0) {
-                    console.log(`Python stdout: ${data}`);
-                } else {
-                    console.log('Python stdout: {}');
-                }
-            });
     
             this.pyProcess.stderr.on('data', (data) => {
                 console.error(`Python stderr: ${data}`);
@@ -57,36 +49,42 @@ export class PythonProcessHandler {
         }
     }
 
-    async sendMessage(data: object): Promise<any> {
+    async sendMessage(data: object, countListner?: (count: number, message: string) => void): Promise<any> {
         if(!this.pyProcess) {
             throw new Error('Python process is not running.');
         }
-
+        
+        let count = 0;
         return new Promise((resolve, reject) => {
             const message = JSON.stringify(data) + '\n';
             const [stdin, stdout] = [this.pyProcess?.stdin, this.pyProcess?.stdout];
-
+            
             if(!stdin || !stdout) {
                 return reject('Python process stdin or stdout is not available.');
             }
 
+            stdout.removeAllListeners('data');
+
             let buffer = '';
-            
+            let jsonBuffer: string[] = [];
             const onData = (chunk: Buffer) => {
-                buffer += chunk.toString(); // 버퍼에 데이터 추가
-                let lines = buffer.split('\n'); // 줄바꿈을 기준으로 나눔
-                buffer = lines.pop() || ''; // 마지막 줄(완성되지 않은 JSON)을 다시 버퍼로 보관
-            
-                for (let line of lines) {
-                    if (line.trim() === '') continue; // 빈 줄 무시
-                    try {
-                        const parsed = JSON.parse(line.trim()); // JSON 파싱
-                        stdout.removeListener('data', onData); // 리스너 해제
-                        resolve(parsed);
-                    } catch (error) {
-                        reject(`Failed to parse Python response: ${error}`);
-                    }
+                buffer += chunk.toString();
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    jsonBuffer.push(line);
                 }
+                
+                console.log(jsonBuffer);
+                jsonBuffer.length = 0;
+                buffer = '';
+                count++;
+                
+                if(countListner) {
+                    let message:string = "Test";
+                    countListner(count, message);
+                }                
             };
 
             stdout.on('data', onData);

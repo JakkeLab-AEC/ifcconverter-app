@@ -8,6 +8,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file_path
 sys.path.append(project_root)
 
 from writer import IfcWriter
+from printer import print_response
 
 def handle_message(message) -> dict:
     """
@@ -48,7 +49,6 @@ def handle_message(message) -> dict:
                 return {"status":"success", "message":"IFC test file created", "filePath": file_path}
             except Exception as e:
                 return {"status":"error", "message": str(e)}
-
         else:
             return {"response_type": "unknown_action", "status": "error", "message": "Unknown action"}
 
@@ -59,43 +59,54 @@ def create_ifc_from_json(entities, output_file):
     """
     Generates an IFC file based on the provided JSON data.
     """
-
     writer = IfcWriter("IFC2x3")
     for entity in entities:
         ifc_class = entity['ifcClass']
-        if ifc_class == 'IfcBuildingStorey':
-            writer.ifcCoreDataUtil.create_storey(
-                name=entity['name'],
-                elevation=float(entity['height'])
-            )
-        elif ifc_class == 'IfcColumn':
-            coordinate = (float(entity['coordinate'][0]), float(entity['coordinate'][1]))
-            writer.ifcSharedElementDataUtil.create_column(
-                profile_name="H300x300",
-                col_type_name="COL-H300x300",
-                target_storey_name=entity['targetStorey'],
-                height=float(entity['height']),
-                rotation_degree=float(entity['rotation']),
-                coordinate=coordinate,
-                profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-            )
-        elif ifc_class == 'IfcBeam':
-            pt_start = (float(entity['startPt'][0]), float(entity['startPt'][1]))
-            pt_end = (float(entity['endPt'][0]), float(entity['endPt'][1]))
-            writer.ifcSharedElementDataUtil.create_beam(
-                profile_name="H300x300",
-                beam_type_name="BEAM-H300x300",
-                target_storey_name=entity['targetStorey'],
-                pt_start=pt_start,
-                pt_end=pt_end,
-                rotation_degree=float(entity['rotation']),
-                z_offset=float(entity['height']),
-                profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
-            )
+        try:
+            if ifc_class == 'IfcBuildingStorey':
+                writer.ifcCoreDataUtil.create_storey(
+                    name=entity['name'],
+                    elevation=float(entity['height'])
+                )
+                print_response(action="writingEntity", entity_type=ifc_class, result=True)
+            elif ifc_class == 'IfcColumn':
+                coordinate = (float(entity['coordinate'][0]), float(entity['coordinate'][1]))
+                writer.ifcSharedElementDataUtil.create_column(
+                    profile_name="H300x300",
+                    col_type_name="COL-H300x300",
+                    target_storey_name=entity['targetStorey'],
+                    height=float(entity['height']),
+                    rotation_degree=float(entity['rotation']),
+                    coordinate=coordinate,
+                    profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+                )
+                print_response(action="writingEntity", entity_type=ifc_class, result=True)
+            elif ifc_class == 'IfcBeam':
+                pt_start = (float(entity['startPt'][0]), float(entity['startPt'][1]))
+                pt_end = (float(entity['endPt'][0]), float(entity['endPt'][1]))
+                writer.ifcSharedElementDataUtil.create_beam(
+                    profile_name="H300x300",
+                    beam_type_name="BEAM-H300x300",
+                    target_storey_name=entity['targetStorey'],
+                    pt_start=pt_start,
+                    pt_end=pt_end,
+                    rotation_degree=float(entity['rotation']),
+                    z_offset=float(entity['height']),
+                    profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
+                )
+                print_response(action="writingEntity", entity_type=ifc_class, result=True)
+            else:
+                print_response(action="writingEntity", result=False, entity_type=ifc_class, message="Not supported IfcClass.")
+                sys.stdout.flush()
+        except Exception as e:
+            print_response(action="writingEntity", result=False, entity_type=ifc_class, message=str(e))
+
+        sys.stdout.flush()
 
     # Codes will be written here to process `json_data` dynamically
     writer.save(output_file)
-    print(json.dumps({"result": "success"}))
+    print_response(action="writingFile", result=True)
+    sys.stdout.flush()
     return output_file
 
 # Message handling loop for continuous processing
@@ -112,8 +123,7 @@ def message_loop():
         response = handle_message(line.strip())
 
         # Output the response as JSON
-        print(json.dumps(response), end='')
-        sys.stdout.flush()
+        print_response(action="system", message=response, result=True)
 
 def create_ifc_test(output_file):
     """

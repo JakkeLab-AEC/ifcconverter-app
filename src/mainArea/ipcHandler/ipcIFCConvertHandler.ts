@@ -1,12 +1,25 @@
 import { IpcMain } from "electron";
 import { AppController } from "../appController/appController";
+import { IfcCreationMessageSender } from "./messageSenders/ifcCreationMessageSender";
 
 export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
     ipcMain.handle('ifc-create', async (_, message: string) => {
         const handler = AppController.getInstance().getPythonProcessHandler();
 
         const { mappedItems, unmappedItems } = AppController.getInstance().getDataStore().getMappingWriter().dispatchData();
-        const entities = AppController.getInstance().getDataStore().getMappingWriter().exportAsJSON();
+        const countListner = (count: number, message: string) => {
+            console.log({
+                totalSteps: mappedItems.length,
+                currentStep: count,
+                message: message
+            });
+
+            IfcCreationMessageSender({
+                totalSteps: mappedItems.length + 2,
+                currentStep: count,
+                message: message
+            });
+        };
 
         (async () => {
             try {
@@ -30,19 +43,7 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
                     "entities": mappedItems
                 };
                 
-                const response = await handler.sendMessage(jsonData);
-                // Python 메시지의 response_type 확인
-                if(!Object.keys(response).includes('status')) {
-                    // Python 프로세스 종료
-                    handler.stop();
-                    return;
-                }
-
-                if (response.status === 'success') {
-                    console.log(`IFC File created at: ${response.file}`);
-                } else {
-                    console.error(`Error: ${response.message}`);
-                }
+                const response = await handler.sendMessage(jsonData, countListner);
             } catch (error) {
                 console.error('Error during Python IPC communication:', error);
             } finally {
