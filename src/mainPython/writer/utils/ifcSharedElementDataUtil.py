@@ -3,7 +3,7 @@ import math
 from ifcopenshell import entity_instance
 import ifcopenshell.guid
 import ifcopenshell.util.selector
-from dist.mainPython.writer.ifcWriter import IfcWriter
+from src.mainPython.writer.ifcWriter import IfcWriter
 from .simpleVectorUtils import SimpleVectorUtil
 
 class IfcSharedElementDataUtil:
@@ -123,7 +123,7 @@ class IfcSharedElementDataUtil:
         self.writer.ifcCoreDataUtil.create_rel_contained_in_spatial_structure(
             related_elements=[column],
             relating_structure=target_storey["Entity"],
-            owner_history=self.writer.owner_history,
+            owner_history=self.writer.owner_history
         )
 
         # Create RelDefinesByType
@@ -725,3 +725,131 @@ class IfcSharedElementDataUtil:
                 profiles.append(profile)
 
         return profiles
+
+    def create_wall(
+        self,
+        profile_name: str,
+        wall_type_name: str,
+        target_storey_name: str,
+        pt_start: tuple[float, float],
+        pt_end: tuple[float, float],
+        z_offset: float = 0.,
+        wall_thickness: float = 0.1,
+        wall_height: float = 4.
+    ) -> entity_instance:
+
+        if target_storey_name not in self.writer.storeys.keys():
+            raise ValueError(f"Not Exist Error: Storey f'{target_storey_name}' does not exist.")
+
+        target_storey = self.writer.storeys[target_storey_name]
+
+        vector_util = SimpleVectorUtil()
+        wall_cen_vector = vector_util.vector_subtract(pt_end, pt_start)
+        wall_length = vector_util.vector_size(wall_cen_vector)
+        wall_cen_normalized = vector_util.vector_normalize(wall_cen_vector)
+
+        if wall_type_name in self.writer.element_types['wall_types'].keys():
+            wall_type = self.writer.element_types['wall_types'][wall_type_name]['Entity']
+        else:
+            wall_type = self.writer.model.create_entity(
+                type="IfcWallType",
+                GlobalId=ifcopenshell.guid.new(),
+                OwnerHistory=self.writer.owner_history,
+                Name=wall_type_name,
+                PredefinedType="STANDARD"
+            )
+
+        if profile_name in self.writer.profiles.keys():
+            profile = self.writer.profiles[profile_name]
+        else:
+            profile = self.writer.ifcResourceEntityUtil.create_rectangle_profile(
+                profile_name=profile_name,
+                x_dim=wall_length,
+                y_dim=wall_thickness
+            )
+
+        #region Create extrusion
+        extrusion_position = self.writer.model.create_entity(
+            type="IfcAxis2Placement3D",
+            Location=self.writer.origin3d
+        )
+
+        extrusion_direction = self.writer.axis_z
+
+        extrusion = self.writer.ifcResourceEntityUtil.create_extruded_area_solid_wall(
+            swept_area=profile,
+            extruded_direction=extrusion_direction,
+            position=extrusion_position,
+            depth=wall_height
+        )
+
+        shape_representation_extrusion = self.writer.ifcResourceEntityUtil.create_shape_representation(
+            context_of_items=self.writer.sub_context_body,
+            representation_identifier="Body",
+            representation_type="SweptSolid",
+            items=[extrusion]
+        )
+        #endregion
+
+        #region Create axis shape
+        axis_polyline = self.writer.ifcResourceEntityUtil.create_polyline(
+            pts=[
+                (0., 0.),
+                (wall_length, 0.)
+            ]
+        )
+
+        shape_representation_axis = self.writer.ifcResourceEntityUtil.create_shape_representation(
+            context_of_items=self.writer.sub_context_axis,
+            representation_type="Curve2D",
+            representation_identifier="Axis",
+            items=[axis_polyline]
+        )
+        #endregion
+
+        representation = self.writer.ifcResourceEntityUtil.create_product_define_shape(
+            representations=[shape_representation_axis, shape_representation_extrusion]
+        )
+
+        wall_position = self.writer.ifcResourceEntityUtil.create_axis2placement_3d(
+            location=self.writer.ifcResourceEntityUtil.create_cartesian_point_3d(coordinate=(pt_start[0], pt_start[1], z_offset)),
+            axis=self.writer.axis_z,
+            ref_direction=self.writer.ifcResourceEntityUtil.create_direction_3d(coordinate=(wall_cen_normalized[0], wall_cen_normalized[1], 0.))
+        )
+
+        wall_placement = self.writer.ifcResourceEntityUtil.create_local_placement(
+            placement_rel_to=target_storey['ObjectPlacement'],
+            relative_placement=wall_position
+        )
+
+        wall = self.writer.model.create_entity(
+            type="IfcWallStandardCase",
+            GlobalId=ifcopenshell.guid.new(),
+            OwnerHistory=self.writer.owner_history,
+            Name=wall_type_name,
+            ObjectType=wall_type_name,
+            ObjectPlacement=wall_placement,
+            Representation=representation
+        )
+
+        # Create RelContainedSpatialStructure
+        self.writer.ifcCoreDataUtil.create_rel_contained_in_spatial_structure(
+            related_elements=[wall],
+            relating_structure=target_storey['Entity'],
+            owner_history=self.writer.owner_history
+        )
+
+        self.writer.ifcResourceEntityUtil.create_rel_defines_by_type(
+            name=wall_type_name,
+            related_objects=[wall],
+            relating_type=wall_type
+        )
+
+        # Apply material
+        self.writer.ifcResourceEntityUtil.create_material(
+            name=f"MAT_{wall_type_name}",
+            rgba={"r": 128, "g": 128, "b": 128, "a": 0.5}
+        )
+
+        return wall
+

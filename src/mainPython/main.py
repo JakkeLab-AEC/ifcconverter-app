@@ -208,6 +208,19 @@ def create_ifc_test(output_file):
 
     writer.ifcSharedElementDataUtil.test_extrusion()
 
+    writer.ifcSharedElementDataUtil.create_wall(
+        profile_name="WAL_T120",
+        wall_type_name="W_T120",
+        target_storey_name="1F",
+        pt_start=(1., 1.),
+        pt_end=(5., 5.),
+        z_offset=-1.,
+        wall_thickness=0.2,
+        wall_height=3.5
+    )
+
+    print(output_file)
+
     writer.save(output_file)
 
     return output_file
@@ -219,8 +232,8 @@ if __name__ == "__main__":
         print("Running in test mode...")
         test_input = {"header" : {
             "action": "create_ifc_test",
-            "output_file": f"{sys.argv[2]}/test_type2.ifc",
-            "json_file": f"{sys.argv[2]}/test_output.json"
+            "output_file": f"test_type2.ifc",
+            "json_file": f"test_output.json"
         }}
         response = handle_message(json.dumps(test_input))
         create_ifc_test(test_input["header"]['output_file'])

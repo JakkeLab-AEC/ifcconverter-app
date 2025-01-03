@@ -1,4 +1,6 @@
-from dist.mainPython.writer.ifcWriter import IfcWriter
+from multiprocessing.managers import Value
+
+from src.mainPython.writer.ifcWriter import IfcWriter
 from typing import Literal
 from ifcopenshell import entity_instance
 import ifcopenshell.guid
@@ -187,6 +189,31 @@ class IfcResourceEntityUtil:
             SweptArea=swept_area,
             Position=position,
             ExtrudedDirection=self.writer.axis_z_neg,
+            Depth=depth
+        )
+
+    def create_extruded_area_solid_wall(
+        self,
+        swept_area: entity_instance,
+        extruded_direction: entity_instance,
+        position: entity_instance,
+        depth: float,
+    ) -> entity_instance:
+        """
+        Create extruded area solid. Adjusting z_coordinate makes difference while placing the extrusion.
+        1. When z_coordinate is same with elevation of the linked building storey, extrusion places on that level.
+        2. When higher or lower, the entity will be placed above or below of the difference of values.
+           (Example: Elevation 2000, z_coordinate 2000, base offset is 0. 3000 and 2000, base offset is 1000)
+        :param swept_area: Entity of IfcProfileDef
+        :param extruded_direction: Entity of IfcDirection
+        :param depth: Extrusion distance.
+        """
+
+        return self.writer.model.create_entity(
+            type="IfcExtrudedAreaSolid",
+            SweptArea=swept_area,
+            Position=position,
+            ExtrudedDirection=extruded_direction,
             Depth=depth
         )
 
@@ -522,6 +549,61 @@ class IfcResourceEntityUtil:
         self.writer.materials[name] = entity_set
         return entity_set
 
+    def create_material_layer_set(
+        self,
+        name: str,
+        layer_args: dict[str, dict[str, any]|float|str],
+        rgba: dict[str, float],
+        thickness: float
+    ) -> entity_instance:
+
+        if name in self.writer.material_layer_sets.keys():
+            raise ValueError(f"Duplication Error : MaterialSet '{name}' already exists.")
+
+
+        layers:list[entity_instance] = []
+        for layer_arg in layer_args:
+            if layer_arg["name"] in self.writer.materials.keys():
+                material = self.writer.materials[name]['Material']
+            else:
+                material = self.writer.model.create_entity(
+                    type="IfcMaterial",
+                    Name=name
+                )
+
+                self.writer.materials[layer_arg["name"]] = {
+                    "Entity": material
+                }
+
+
+            material_layer = self.writer.model.create_entity(
+                type="IfcMaterialLayer",
+                Material=material,
+                LayerThickness=thickness
+            )
+
+            layers.append(material_layer)
+
+        material_layer_set = self.writer.model.create_entity(
+            type="IfcMaterialLayerSet",
+            MaterialLayers=layers,
+            LayerSetName=name
+        )
+
+        material_layer_usage = self.writer.model.create_entity(
+            type="IfcMaterialLayerSetUsage",
+            ForLayerSet=material_layer_set,
+            LayerSetDirection="AXIS2",
+            DirectionSense="POSITIVE",
+            OffsetFromReferenceLine=-100.
+        )
+
+        self.writer.material_layer_sets[name]={
+            "MaterialSet": material_layer_set,
+            "MaterialSetUsage": material_layer_usage
+        }
+
+
     def assign_material(
         self,
         material_name: str,
@@ -538,6 +620,24 @@ class IfcResourceEntityUtil:
             RelatedObjects=target_objects,
             RelatingMaterial=material_entity
         )
+
+    def assign_material_set(
+        self,
+
+    ) -> entity_instance:
+        self.writer.model.create_entity(
+            type="IfcMaterialDefinitionRepresentation"
+        )
+
+        self.writer.model.create_entity(
+            type="IfcStyledItem"
+        )
+
+        self.writer.model.create_entity(
+            type="IfcStyledItem"
+        )
+
+
 
     #Arbitary Profile
     def create_polyline(
@@ -793,6 +893,31 @@ class IfcResourceEntityUtil:
         self.writer.profiles[profile_name] = profile
         return profile
 
+    def create_rectangle_profile(
+        self,
+        profile_name: str,
+        x_dim: float,
+        y_dim: float
+    ) -> entity_instance:
+        if profile_name in self.writer.profiles.keys():
+            raise ValueError(f"Duplication Error : Profile '{profile_name}' already exists.")
+
+        position = self.create_axis2placement_2d(
+            location=self.create_cartesian_point_2d(coordinate=(0.5*x_dim, 0.)),
+            ref_direction=self.create_direction_2d(coordinate=(-1., 0.))
+        )
+
+        profile = self.writer.model.create_entity(
+            type="IfcRectangleProfileDef",
+            ProfileType="AREA",
+            ProfileName=profile_name,
+            XDim=x_dim,
+            YDim=y_dim,
+            Position=position
+        )
+
+        self.writer.profiles[profile_name] = profile
+        return profile
 
 
 
