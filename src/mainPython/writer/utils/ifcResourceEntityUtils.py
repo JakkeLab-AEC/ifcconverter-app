@@ -552,16 +552,21 @@ class IfcResourceEntityUtil:
     def create_material_layer_set(
         self,
         name: str,
-        layer_args: dict[str, dict[str, any]|float|str],
-        rgba: dict[str, float],
-        thickness: float
-    ) -> entity_instance:
-
+        layer_args: list[dict[str, any]],
+    ) -> dict[str, entity_instance]:
+        """
+        layer_args = {
+            "name": "MAT_LY_01",
+            "rgba": {"r": 128, "g": 128, "b": 128, "a": 0.5},
+            "thickness": 0.1,
+        }
+        """
         if name in self.writer.material_layer_sets.keys():
             raise ValueError(f"Duplication Error : MaterialSet '{name}' already exists.")
 
-
         layers:list[entity_instance] = []
+        surface_styles:list[entity_instance] = []
+        total_thickness = 0.
         for layer_arg in layer_args:
             if layer_arg["name"] in self.writer.materials.keys():
                 material = self.writer.materials[name]['Material']
@@ -579,10 +584,22 @@ class IfcResourceEntityUtil:
             material_layer = self.writer.model.create_entity(
                 type="IfcMaterialLayer",
                 Material=material,
-                LayerThickness=thickness
+                LayerThickness=layer_arg["thickness"]
+            )
+
+            surface_style_rendering = self.create_surface_style_rendering(
+                rgba=layer_arg['rgba']
+            )
+
+            surface_style = self.create_surface_style(
+                name=name,
+                side="BOTH",
+                styles=[surface_style_rendering]
             )
 
             layers.append(material_layer)
+            surface_styles.append(surface_style)
+            total_thickness += layer_arg["thickness"]
 
         material_layer_set = self.writer.model.create_entity(
             type="IfcMaterialLayerSet",
@@ -595,13 +612,22 @@ class IfcResourceEntityUtil:
             ForLayerSet=material_layer_set,
             LayerSetDirection="AXIS2",
             DirectionSense="POSITIVE",
-            OffsetFromReferenceLine=-100.
+            OffsetFromReferenceLine=-0.5*total_thickness
         )
 
-        self.writer.material_layer_sets[name]={
+        style_assignment = self.create_presentation_style_assignment(
+            styles=surface_styles
+        )
+
+        defined_material_layer_set = {
             "MaterialSet": material_layer_set,
-            "MaterialSetUsage": material_layer_usage
+            "MaterialSetUsage": material_layer_usage,
+            "StyleAssignment": style_assignment
         }
+
+        self.writer.material_layer_sets[name]=defined_material_layer_set
+
+        return defined_material_layer_set
 
 
     def assign_material(
@@ -623,21 +649,51 @@ class IfcResourceEntityUtil:
 
     def assign_material_set(
         self,
-
+        target_presentation: entity_instance,
+        material_set_name: str,
     ) -> entity_instance:
+        if material_set_name not in self.writer.material_layer_sets.keys():
+            raise ValueError(f"Not exist error : Material Set '{material_set_name}' does not exist.")
+
+        target_material_set = self.writer.material_layer_sets[material_set_name]
+
+        return self.writer.model.create_entity(
+            type="IfcStyledItem",
+            Item=target_presentation,
+            Styles=target_material_set["StyleAssignment"],
+        )
+
+    def assign_material_set_wall(
+        self,
+        material_set_name: str,
+        target_presentation: entity_instance,
+        target_wall_type: entity_instance,
+        target_wall_entity: entity_instance
+    ) -> None:
+        if material_set_name not in self.writer.material_layer_sets.keys():
+            raise ValueError(f"Not exist error : Material Set '{material_set_name}' does not exist.")
+
+        target_material_set = self.writer.material_layer_sets[material_set_name]
+
         self.writer.model.create_entity(
-            type="IfcMaterialDefinitionRepresentation"
+            type="IfcStyledItem",
+            Item=target_presentation,
+            Styles=[target_material_set["StyleAssignment"]],
         )
 
         self.writer.model.create_entity(
-            type="IfcStyledItem"
+            type="IfcRelAssociatesMaterial",
+            GlobalId=ifcopenshell.guid.new(),
+            RelatedObjects=[target_wall_entity],
+            RelatingMaterial=target_material_set["MaterialSetUsage"]
         )
 
         self.writer.model.create_entity(
-            type="IfcStyledItem"
+            type="IfcRelAssociatesMaterial",
+            GlobalId=ifcopenshell.guid.new(),
+            RelatedObjects=[target_wall_type],
+            RelatingMaterial=target_material_set["MaterialSet"]
         )
-
-
 
     #Arbitary Profile
     def create_polyline(

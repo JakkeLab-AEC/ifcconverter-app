@@ -726,7 +726,7 @@ class IfcSharedElementDataUtil:
 
         return profiles
 
-    def create_wall(
+    def create_wall_single(
         self,
         profile_name: str,
         wall_type_name: str,
@@ -735,7 +735,8 @@ class IfcSharedElementDataUtil:
         pt_end: tuple[float, float],
         z_offset: float = 0.,
         wall_thickness: float = 0.1,
-        wall_height: float = 4.
+        wall_height: float = 4.,
+        rgba: dict[str, float] = {"r": 128, "g": 128, "b": 128, "a": 0.5}
     ) -> entity_instance:
 
         if target_storey_name not in self.writer.storeys.keys():
@@ -846,9 +847,22 @@ class IfcSharedElementDataUtil:
         )
 
         # Apply material
-        self.writer.ifcResourceEntityUtil.create_material(
+        layer_args = [{
+            "name": "WAL_01",
+            "thickness": wall_thickness,
+            "rgba": rgba,
+        }]
+
+        self.writer.ifcResourceEntityUtil.create_material_layer_set(
             name=f"MAT_{wall_type_name}",
-            rgba={"r": 128, "g": 128, "b": 128, "a": 0.5}
+            layer_args=layer_args
+        )
+
+        self.writer.ifcResourceEntityUtil.assign_material_set_wall(
+            material_set_name=f"MAT_{wall_type_name}",
+            target_presentation=extrusion,
+            target_wall_type=wall_type,
+            target_wall_entity=wall
         )
 
         return wall

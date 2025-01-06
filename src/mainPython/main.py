@@ -208,14 +208,14 @@ def create_ifc_test(output_file):
 
     writer.ifcSharedElementDataUtil.test_extrusion()
 
-    writer.ifcSharedElementDataUtil.create_wall(
+    writer.ifcSharedElementDataUtil.create_wall_single(
         profile_name="WAL_T120",
         wall_type_name="W_T120",
         target_storey_name="1F",
         pt_start=(1., 1.),
         pt_end=(5., 5.),
         z_offset=-1.,
-        wall_thickness=0.2,
+        wall_thickness=0.3,
         wall_height=3.5
     )
 
