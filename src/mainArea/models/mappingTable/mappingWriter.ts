@@ -2,6 +2,7 @@ import { AppController } from "../../../mainArea/appController/appController";
 import { MappableIfcColumn } from "../mappableItems/entities/mappableColumn";
 import { MappableIfcBeam } from "../mappableItems/entities/mappableIfcBeam";
 import { MappableIfcBuildingStorey } from "../mappableItems/entities/mappableIfcBuildingStorey";
+import { MappableIfcWallStandardCase } from "../mappableItems/entities/mappableIfcWallStandardCase";
 import { MappableItem } from "../mappableItems/mappableItem";
 import { MappableIfcClasses } from "./mappingTableDefinition";
 import { MappingTableReader } from "./mappingTableReader"
@@ -68,6 +69,17 @@ export class MappingWriter {
                     return { result: true };
                 } else {
                     this.unmappedItem.push({ entity: item, reason: "Type validation failed." });
+                    return { result: false, message: "Type validation failed." };
+                }
+            }
+
+            case MappableIfcClasses.IfcWallStandardCase: {
+                const entity = new MappableIfcWallStandardCase({userKey: item.userKey, userArgs: transformedArgs });
+                if(entity.isValid) {
+                    this.mappedItem.push(entity);
+                    return { result: true };
+                } else {
+                    this.unmappedItem.push({ entity: item, reason: "Type validation failed."});
                     return { result: false, message: "Type validation failed." };
                 }
             }

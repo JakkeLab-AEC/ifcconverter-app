@@ -1,4 +1,4 @@
-import { IfcBeamArgs, IfcBuildingStoreyArgs, IfcColumnArgs, MappableIfcClasses, MappingTableDefinition, UserArgs, UserArgsMap } from "./mappingTableDefinition";
+import { IfcBeamArgs, IfcBuildingStoreyArgs, IfcColumnArgs, IfcWallStandardCaseArgs, MappableIfcClasses, MappingTableDefinition, UserArgs, UserArgsMap } from "./mappingTableDefinition";
 
 export class MappingTableReader {
     constructor() {
@@ -38,7 +38,11 @@ export class MappingTableReader {
                     case MappableIfcClasses.IfcBuildingStorey:
                         this.validateIfcBuildingStorey(value.userArgs as IfcBuildingStoreyArgs);
                         break;
-
+                    
+                    case MappableIfcClasses.IfcWallStandardCase:
+                        this.validateIfcWallStandardCase(value.userArgs as IfcWallStandardCaseArgs);
+                        break;
+                    
                     default:
                         throw new Error(`Unsupported IFC class: ${mappableClass}`);
                 }
@@ -66,6 +70,12 @@ export class MappingTableReader {
     private validateIfcBuildingStorey(args: IfcBuildingStoreyArgs): void {
         if (!args.name || !args.height) {
             throw new Error(`Invalid IfcBuildingStorey arguments: ${JSON.stringify(args)}`);
+        }
+    }
+
+    private validateIfcWallStandardCase(args: IfcWallStandardCaseArgs): void {
+        if(!args.startPt || !args.endPt || !args.height || !args.targetStorey || !args.zOffset || !args.thickness) {
+            throw new Error(`Invalid IfcWallStandardCaseArgs arguments: ${JSON.stringify(args)}`);
         }
     }
 

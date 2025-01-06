@@ -728,11 +728,11 @@ class IfcSharedElementDataUtil:
 
     def create_wall_single(
         self,
-        profile_name: str,
         wall_type_name: str,
         target_storey_name: str,
         pt_start: tuple[float, float],
         pt_end: tuple[float, float],
+        profile_name: str | None = None,
         z_offset: float = 0.,
         wall_thickness: float = 0.1,
         wall_height: float = 4.,
@@ -760,7 +760,14 @@ class IfcSharedElementDataUtil:
                 PredefinedType="STANDARD"
             )
 
-        if profile_name in self.writer.profiles.keys():
+        if profile_name is None:
+            profile_name = f"WAL_L{wall_length}T{wall_thickness}"
+            profile = self.writer.ifcResourceEntityUtil.create_rectangle_profile(
+                profile_name=profile_name,
+                x_dim=wall_length,
+                y_dim=wall_thickness
+            )
+        elif profile_name in self.writer.profiles.keys():
             profile = self.writer.profiles[profile_name]
         else:
             profile = self.writer.ifcResourceEntityUtil.create_rectangle_profile(
@@ -853,13 +860,15 @@ class IfcSharedElementDataUtil:
             "rgba": rgba,
         }]
 
-        self.writer.ifcResourceEntityUtil.create_material_layer_set(
-            name=f"MAT_{wall_type_name}",
-            layer_args=layer_args
-        )
+        mat_name = f"MAT_{wall_type_name}"
+        if mat_name not in self.writer.material_layer_sets.keys():
+            self.writer.ifcResourceEntityUtil.create_material_layer_set(
+                name=mat_name,
+                layer_args=layer_args
+            )
 
         self.writer.ifcResourceEntityUtil.assign_material_set_wall(
-            material_set_name=f"MAT_{wall_type_name}",
+            material_set_name=mat_name,
             target_presentation=extrusion,
             target_wall_type=wall_type,
             target_wall_entity=wall

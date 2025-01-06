@@ -25,6 +25,17 @@
                 "targetStorey": "targetStorey",
                 "rotation": "rotation"
             }
+        },
+        "IfcWallStandardCase": {
+            "userKey": "Wall",
+            "userArgs": {
+                "startPt": "startPt",
+                "endPt": "endPt",
+                "height": "height",
+                "targetStorey": "targetStorey",
+                "zOffset": "zOffset",
+                "thickness": "thickness"
+            }
         }
     }
 }

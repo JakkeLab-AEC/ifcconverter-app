@@ -1,13 +1,15 @@
 export enum MappableIfcClasses {
     IfcBuildingStorey = "IfcBuildingStorey",
     IfcColumn = "IfcColumn",
-    IfcBeam = "IfcBeam"
+    IfcBeam = "IfcBeam",
+    IfcWallStandardCase = "IfcWallStandardCase"
 }
 
 export type UserArgsMap = {
     IfcColumn: IfcColumnArgs;
     IfcBeam: IfcBeamArgs;
     IfcBuildingStorey: IfcBuildingStoreyArgs;
+    IfcWallStandardCase: IfcWallStandardCaseArgs
 }
 
 export interface IfcColumnArgs {
@@ -22,6 +24,15 @@ export interface IfcBeamArgs {
     endPt: string,
     height: string,
     targetStorey: string
+}
+
+export interface IfcWallStandardCaseArgs {
+    startPt: string,
+    endPt: string,
+    height: string,
+    targetStorey: string,
+    zOffset: string,
+    thickness: string
 }
 
 export interface IfcBuildingStoreyArgs {

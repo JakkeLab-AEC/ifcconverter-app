@@ -66,4 +66,25 @@
         "height": 5,
         "targetStorey": "1F"
     }
+},{
+    "userKey": "Wall",
+    "userArgs": {
+        "startPt": [1, 1],
+        "endPt": [5, 5],
+        "height": 5,
+        "targetStorey": "1F",
+        "zOffset": -1,
+        "thickness": 0.2
+
+    }
+},{
+    "userKey": "Wall",
+    "userArgs": {
+        "startPt": [7, 7],
+        "endPt": [10, 15],
+        "height": 5,
+        "targetStorey": "1F",
+        "zOffset": -1,
+        "thickness": 0.2
+    }
 }]

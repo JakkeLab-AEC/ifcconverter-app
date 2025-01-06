@@ -94,6 +94,19 @@ def create_ifc_from_json(entities, output_file):
                     profile_arg={"w": 0.3, "h": 0.3, "tw": 0.01, "tf": 0.015, "r": 0.01}
                 )
                 print_response(action="writingEntity", entity_type=ifc_class, result=True)
+            elif ifc_class == "IfcWallStandardCase":
+                pt_start = (float(entity['startPt'][0]), float(entity['startPt'][1]))
+                pt_end = (float(entity['endPt'][0]), float(entity['endPt'][1]))
+                writer.ifcSharedElementDataUtil.create_wall_single(
+                    wall_type_name=f"WAL_T{entity['thickness']}",
+                    target_storey_name=entity['targetStorey'],
+                    pt_start=pt_start,
+                    pt_end=pt_end,
+                    z_offset=float(entity['zOffset']),
+                    wall_thickness=float(entity['thickness']),
+                    wall_height=float(entity['height'])
+                )
+                print_response(action="writingEntity", entity_type=ifc_class, result=True)
             else:
                 print_response(action="writingEntity", result=False, entity_type=ifc_class, message="Not supported IfcClass.")
                 sys.stdout.flush()
@@ -209,11 +222,20 @@ def create_ifc_test(output_file):
     writer.ifcSharedElementDataUtil.test_extrusion()
 
     writer.ifcSharedElementDataUtil.create_wall_single(
-        profile_name="WAL_T120",
         wall_type_name="W_T120",
         target_storey_name="1F",
         pt_start=(1., 1.),
         pt_end=(5., 5.),
+        z_offset=-1.,
+        wall_thickness=0.3,
+        wall_height=3.5
+    )
+
+    writer.ifcSharedElementDataUtil.create_wall_single(
+        wall_type_name="W_T120",
+        target_storey_name="1F",
+        pt_start=(7., 7.),
+        pt_end=(15., 12.),
         z_offset=-1.,
         wall_thickness=0.3,
         wall_height=3.5
