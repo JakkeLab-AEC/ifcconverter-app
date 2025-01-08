@@ -1,16 +1,17 @@
 import { defineConfig } from "vite";
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { builtinModules } from 'module';
 import copyFilesPlugin from "./viteplugin";
 
 const isWindows = process.platform === 'win32';
-const anacondaEnvSrc = isWindows ? 'envs/conda_env_win' : 'envs/conda_env_mac';
+const condaEnvSrc = isWindows ? 'envs/conda_env_win' : 'envs/conda_env_mac';
 
 export default defineConfig({
   base: './',
   build: {
     sourcemap: false,
     outDir: '.vite/',
+    emptyOutDir: true,
     minify: 'esbuild',
     rollupOptions: {
       input: {
@@ -26,8 +27,9 @@ export default defineConfig({
       ],
       output: {
         entryFileNames: '[name].js',
-        format: 'cjs',
+        format: 'es',
       },
+      preserveEntrySignatures: 'strict',
     },
   },
   server: {
@@ -41,16 +43,16 @@ export default defineConfig({
   plugins: [copyFilesPlugin({
     src: 'src/mainPython',
     dest: 'dist/mainPython',
-    watch: true
+    watch: false
   }), copyFilesPlugin({
-    src: anacondaEnvSrc,
+    src: condaEnvSrc,
     dest: 'dist/conda_env',
-    watch: true
+    watch: false
   })],
   esbuild: {
-    keepNames: true,
-    minifyIdentifiers: false,
-    minifySyntax: false,
-    minifyWhitespace: false,
+    keepNames: false,
+    minifyIdentifiers: true,
+    minifySyntax: true,
+    minifyWhitespace: true,
   }
 });

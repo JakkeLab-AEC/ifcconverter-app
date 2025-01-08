@@ -5,7 +5,7 @@
   "main": "./dist/main.js",
   "scripts": {
     "dev": "tsc && concurrently \"vite\" \"wait-on tcp:3000 && electron-forge start\"",
-    "package": "tsc && vite build && electron-forge package",
+    "package": "tsc && vite build && electron-forge package ./dist",
     "make": "tsc && vite build && electron-forge make",
     "publish": "tsc && vite build && electron-forge publish"
   },
@@ -46,28 +46,5 @@
   "overrides": {
     "minimatch": "5.1.2",
     "glob": "8.1.0"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "externals": ["node:child_process"]
-      },
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "electron_quick_start",
-            "author": "jakkelab",
-            "description": "none"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        }
-      ]
-    }
   }
 }

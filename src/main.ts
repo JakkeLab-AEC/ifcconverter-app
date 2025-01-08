@@ -14,8 +14,8 @@ if (require('electron-squirrel-startup')) app.quit();
 let mainWindow: BrowserWindow | null;
 
 // Process Handler
-const pythonDirectory = path.resolve(__dirname, '/dist/conda_env')
-const pythonScriptPath = path.resolve(__dirname, `/dist/mainPython/main.py`);
+const pythonDirectory = path.resolve(__dirname, './conda_env')
+const pythonScriptPath = path.resolve(__dirname, `./mainPython/main.py`);
 new PythonProcessHandler(pythonScriptPath, pythonDirectory);
 
 const createWindow = () => {
@@ -34,11 +34,13 @@ const createWindow = () => {
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:3000');
   } else {
+    console.log("Load screen");
     mainWindow.loadFile(path.join(__dirname, '../.vite/index.html'));
   }
 
   // Send os info
   mainWindow.webContents.on('did-finish-load', () => {
+    console.log("Send os info");
     mainWindow?.webContents.send('os-info', {
       platform: os.platform(),
       arch: os.arch(),
@@ -76,10 +78,10 @@ const createWindow = () => {
     submenu: submenus
   };
 
-  if(!app.isPackaged) {
-    submenus.push({role: 'toggleDevTools'});
-    submenus.push({role: 'reload'});
-  }
+  // if(!app.isPackaged) {
+  //   submenus.push({role: 'toggleDevTools'});
+  //   submenus.push({role: 'reload'});
+  // }
   
   const template:MenuItemConstructorOptions[] = [menuOption];
   const menu = Menu.buildFromTemplate(template);

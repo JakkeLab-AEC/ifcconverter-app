@@ -1,6 +1,6 @@
 from multiprocessing.managers import Value
 
-from src.mainPython.writer.ifcWriter import IfcWriter
+from dist.mainPython.writer.ifcWriter import IfcWriter
 from typing import Literal
 from ifcopenshell import entity_instance
 import ifcopenshell.guid

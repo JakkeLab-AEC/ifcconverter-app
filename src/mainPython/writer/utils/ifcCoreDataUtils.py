@@ -1,7 +1,7 @@
 from ifcopenshell import entity_instance
 import ifcopenshell.guid
 import ifcopenshell.util.selector
-from src.mainPython.writer.ifcWriter import IfcWriter
+from dist.mainPython.writer.ifcWriter import IfcWriter
 
 class IfcCoreDataUtil:
     def __init__(self, ifc_writer: IfcWriter):
