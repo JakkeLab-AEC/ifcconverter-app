@@ -1,12 +1,12 @@
 import { app, BrowserWindow, ipcMain, Menu, MenuItemConstructorOptions } from 'electron';
 import { setIPCElectronIFCHandler } from './mainArea/ipcHandler/ipcIFCConvertHandler';
+import './mainArea/extensions/jsonTryParse';
 import path from 'path';
 import os from 'os';
 import { AppController } from './mainArea/appController/appController';
 import { UIController } from './mainArea/appController/controllers/uicontroller';
 import { setIpcWindowControl } from './mainArea/ipcHandler/ipcWindowControl';
 import { setIPCFileIOHandler } from './mainArea/ipcHandler/ipcFileIOHandler';
-import './mainArea/extensions/jsonTryParse';
 
 if (require('electron-squirrel-startup')) app.quit();
 
@@ -23,8 +23,6 @@ const createWindow = () => {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: true,
-      devTools: !app.isPackaged,
     },
   });
   

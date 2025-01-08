@@ -17,7 +17,7 @@ export class PythonProcessHandler {
             return;
         }
         
-        // Python 실행 파일 경로
+        // Embedded python path
         let embeddedPythonPath = "";
         if(AppController.getInstance().osInfo == "win") {
             embeddedPythonPath = "python.exe";
@@ -28,10 +28,10 @@ export class PythonProcessHandler {
         console.log('Python Executable Path:', pythonExecutable);
         console.log('Python Script Path:', this.scriptPath);
 
-        // Python 프로세스 실행
+        // Run python process
         try {
             this.pyProcess = spawn(pythonExecutable, [this.scriptPath], {
-                stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
+                stdio: 'pipe'
             });
     
             this.pyProcess.stderr.on('data', (data) => {
@@ -116,7 +116,7 @@ export class PythonProcessHandler {
 
             stdout.on('data', onData);
             
-            stdin.write(message); // Python으로 요청 전송
+            stdin.write(message);
         });
     }
 

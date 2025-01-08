@@ -9,15 +9,19 @@ const anacondaEnvSrc = isWindows ? 'envs/conda_env_win' : 'envs/conda_env_mac';
 export default defineConfig({
   base: './',
   build: {
+    sourcemap: false,
     outDir: '.vite/',
+    minify: 'esbuild',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'src/main.ts'),  // main.ts 파일
+        main: resolve(__dirname, 'src/main.ts'),
         preload: resolve(__dirname, 'src/preload.ts'),
-        index: resolve(__dirname, 'index.html'),  // index.html 파일
+        index: resolve(__dirname, 'index.html'),
       },
       external: [
         'electron',
+        'node:child_process',
+        'path',
         ...builtinModules
       ],
       output: {
@@ -42,5 +46,11 @@ export default defineConfig({
     src: anacondaEnvSrc,
     dest: 'dist/conda_env',
     watch: true
-  })]
+  })],
+  esbuild: {
+    keepNames: true,
+    minifyIdentifiers: false,
+    minifySyntax: false,
+    minifyWhitespace: false,
+  }
 });

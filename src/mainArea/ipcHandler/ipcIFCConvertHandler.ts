@@ -15,6 +15,10 @@ export function setIPCElectronIFCHandler(ipcMain: IpcMain) {
             });
         };
 
+        if(!handler) {
+            return;
+        }
+
         (async () => {
             try {
                 // Python 프로세스 시작

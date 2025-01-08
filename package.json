@@ -1,5 +1,5 @@
 {
-  "name": "electron-jakkelab",
+  "name": "ifcconverter-app",
   "version": "1.0.0",
   "description": "",
   "main": "./dist/main.js",
@@ -49,7 +49,9 @@
   },
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "externals": ["node:child_process"]
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
