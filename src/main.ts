@@ -7,13 +7,18 @@ import { AppController } from './mainArea/appController/appController';
 import { UIController } from './mainArea/appController/controllers/uicontroller';
 import { setIpcWindowControl } from './mainArea/ipcHandler/ipcWindowControl';
 import { setIPCFileIOHandler } from './mainArea/ipcHandler/ipcFileIOHandler';
+import { PythonProcessHandler } from './mainArea/processHandler/pythonProcessHandler';
 
 if (require('electron-squirrel-startup')) app.quit();
 
 let mainWindow: BrowserWindow | null;
 
+// Process Handler
+const pythonDirectory = path.resolve(__dirname, '/dist/conda_env')
+const pythonScriptPath = path.resolve(__dirname, `/dist/mainPython/main.py`);
+new PythonProcessHandler(pythonScriptPath, pythonDirectory);
+
 const createWindow = () => {
-  console.log(path.join(__dirname, 'preload.js'));
   mainWindow = new BrowserWindow({
     width: 480,
     height: 720,
@@ -88,9 +93,10 @@ app.on('ready', () => {
   const osInfo = os.platform();
   if(osInfo === 'win32' || osInfo === 'darwin') {
     const osCode = osInfo === 'win32' ? 'win' : 'mac';
-    AppController.InitiateAppController(osCode);
     createWindow();
-
+    
+    console.log("AppController Instance setting...");
+    AppController.InitiateAppController(osCode);
     setIPCElectronIFCHandler(ipcMain);
     setIpcWindowControl(ipcMain);
     setIPCFileIOHandler(ipcMain);

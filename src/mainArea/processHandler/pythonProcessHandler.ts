@@ -4,11 +4,15 @@ import { spawn, ChildProcessWithoutNullStreams } from 'node:child_process';
 import path from 'path';
 
 export class PythonProcessHandler {
+    static instance: PythonProcessHandler;
     private pyProcess: ChildProcessWithoutNullStreams | null = null;
+    private embbededPythonDirectory: string;
     private scriptPath: string;
 
-    constructor(scriptPath: string) {
+    constructor(scriptPath: string, pythonDirectory: string) {
         this.scriptPath = scriptPath;
+        this.embbededPythonDirectory = pythonDirectory;
+        PythonProcessHandler.instance = this;
     }
 
     start(): void {
@@ -18,13 +22,13 @@ export class PythonProcessHandler {
         }
         
         // Embedded python path
-        let embeddedPythonPath = "";
+        let pythonBinary = "";
         if(AppController.getInstance().osInfo == "win") {
-            embeddedPythonPath = "python.exe";
+            pythonBinary = "python.exe";
         } else {
-            embeddedPythonPath = "bin/python"
+            pythonBinary = "bin/python"
         }
-        const pythonExecutable = path.resolve(__dirname, `../../conda_env/${embeddedPythonPath}`);
+        const pythonExecutable = path.resolve(this.embbededPythonDirectory, `${pythonBinary}`);
         console.log('Python Executable Path:', pythonExecutable);
         console.log('Python Script Path:', this.scriptPath);
 
