@@ -29,10 +29,10 @@ An converter app for designing IFC(BIM) File handling API based on json file.
 ```shell
 npm install
 ```
-3. Create make an conda enviroment and place it at (root)/envs folder.
+3. Make a conda enviroment and place it at (root)/envs folder.
 - Python version: 3.11 recommended to use IfcOpenShell
 ![image](https://github.com/user-attachments/assets/cfff19b2-c489-4d3d-b13d-bd0e0060b261)
-- If your os is Mac (Apple Sillicon), rename the enviroment folder as 'conda_env_mac'
+- If your os is macOS (Apple Sillicon), rename the enviroment folder as 'conda_env_mac'
 - If windows, 'conda_env_win'
   (Because of the vite.config.ts)
 
@@ -66,7 +66,7 @@ npm run package
 
 
 ## How to run dev mode
-1. Making an miniconda environment as same as 'How to Build'
+1. Make a miniconda environment as same as 'How to Build'
 2. Run command.
 ```shell
 npm run dev
