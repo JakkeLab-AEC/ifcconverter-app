@@ -40,7 +40,6 @@ const createWindow = () => {
 
   // Send os info
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log("Send os info");
     mainWindow?.webContents.send('os-info', {
       platform: os.platform(),
       arch: os.arch(),
@@ -78,10 +77,10 @@ const createWindow = () => {
     submenu: submenus
   };
 
-  // if(!app.isPackaged) {
-  //   submenus.push({role: 'toggleDevTools'});
-  //   submenus.push({role: 'reload'});
-  // }
+  if(!app.isPackaged) {
+    submenus.push({role: 'toggleDevTools'});
+    submenus.push({role: 'reload'});
+  }
   
   const template:MenuItemConstructorOptions[] = [menuOption];
   const menu = Menu.buildFromTemplate(template);

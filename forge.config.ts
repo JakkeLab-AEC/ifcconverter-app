@@ -26,7 +26,10 @@ const config: ForgeConfig = {
       "^/index.html",
     ],
   },
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin'])]
+  makers: [
+    new MakerSquirrel({authors: 'jakkelab', description: 'IFC File creation app, wrapping IfcOpenShell.'}), 
+    new MakerZIP({}, ['darwin'])
+  ]
 }
 
 export default config;
